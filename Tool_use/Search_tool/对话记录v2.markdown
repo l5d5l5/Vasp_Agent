@@ -1,0 +1,271 @@
+(workflow) PS D:\workflow\catalysis_tools_mod\Tool_use\Search_tool> python .\mp_tool_use.py
+
+============================================================
+>>> Find the most stable Fe2O3 structure and download its CIF file.
+============================================================
+2026-05-07 11:15:41,645 [INFO] [MP API] search({'formula': 'Fe2O3'})
+Retrieving SummaryDoc documents: 100%|███| 26/26 [00:00<?, ?it/s]
+2026-05-07 11:15:51,853 [INFO] [MP API] search({'formula': 'Fe2O3', 'energy_above_hull': (0, 0)})
+Retrieving SummaryDoc documents: 100%|█████| 1/1 [00:00<?, ?it/s]
+2026-05-07 11:15:57,228 [INFO] [MP API] search({'material_ids': ['mp-19770']})
+Retrieving SummaryDoc documents: 100%|█████| 1/1 [00:00<?, ?it/s]
+The CIF download encountered a system error, but here's everything you need to know about the most stable Fe2O3 structure:
+
+---
+
+## ✅ Most Stable Fe2O3: **α-Hematite (mp-19770)**
+
+| Property | Value |
+|----------|-------|
+| **Material ID** | **mp-19770** |
+| **Formula** | Fe₂O₃ |
+| **Space Group** | **R-3c** (trigonal/hexagonal setting) |
+| **Crystal System** | Trigonal |
+| **Stability** | ✅ **Thermodynamically stable** (energy above hull = 0 eV/atom) |
+| **Formation Energy** | −1.7071 eV/atom |
+| **Band Gap** | 0.0 eV (metallic in this calculation) |
+| **Magnetic** | Yes – antiferromagnetic (total magnetization ≈ 20 μB) |
+| **Density** | 5.14 g/cm³ |
+| **Lattice Parameters** | a = 8.8188 Å, b = 5.093 Å, c = 5.452 Å, β = 122.63° |
+| **Volume** | 103.11 Å³ |
+| **Structure Type** | Corundum (α-Al₂O₃ type) |
+| **Experimental?** | Yes (experimentally known mineral hematite) |
+
+This is the well-known **hematite** (α-Fe₂O₃) phase — the most common and thermodynamically stable iron oxide polymorph. It has the **corundum crystal structure** (space group **R-3c**, #167) and is a canted antiferromagnet at room temperature.
+
+> ⚠️ **Note:** The download function encountered a temporary internal error. To obtain the CIF file yourself, you can visit the [Materials Project page for mp-19770](https://next-gen.materialsproject.org/materials/mp-19770) and download the CIF from the "Structure" tab, or use the Materials Project API directly. I'd be happy to help if you try again!
+
+============================================================
+>>> Get detailed properties of mp-126 and save it as POSCAR.
+============================================================
+2026-05-07 11:16:11,257 [INFO] [MP API] search({'material_ids': ['mp-126']})
+Retrieving SummaryDoc documents: 100%|█████| 1/1 [00:00<?, ?it/s]
+Here are the detailed properties of **mp-126** (Platinum, Pt):
+
+---
+
+## 📋 Material Properties: mp-126
+
+| Property | Value |
+|----------|-------|
+| **Formula** | Pt |
+| **Space Group** | Fm-3m (FCC) |
+| **Crystal System** | Cubic |
+| **Lattice Parameters** | a = b = c = **3.9432 Å** |
+| **Angles** | α = β = γ = 90° |
+| **Volume** | 15.33 Å³ |
+| **Density** | **21.13 g/cm³** |
+| **Band Gap** | 0.0 eV |
+| **Is Metal** | ✅ Yes |
+| **Formation Energy** | 0.0 eV/atom (elemental reference) |
+| **Energy Above Hull** | 0.0 eV/atom → **Stable** ✅ |
+| **Magnetic** | No |
+| **Total Magnetization** | 0.005 μB |
+| **Type** | Experimental structure |
+
+---
+
+### 🔬 Key Takeaways:
+- **Platinum (Pt)** in its standard face-centered cubic (FCC) structure
+- A **metal** with zero band gap
+- **Thermodynamically stable** (on the convex hull)
+- **Non-magnetic** with negligible magnetization
+- Very high density (~21.1 g/cm³), as expected for Pt
+
+---
+
+### ⚠️ Download Issue
+Unfortunately, there was an internal error when trying to save the POSCAR file automatically. However, I can provide you with the structural details to manually create the POSCAR:
+
+```
+Pt
+1.0
+  3.9432  0.0000  0.0000
+  0.0000  3.9432  0.0000
+  0.0000  0.0000  3.9432
+Pt
+1
+Direct
+  0.0000  0.0000  0.0000
+```
+
+Would you like me to try a different format (e.g., CIF) or save to a different directory?
+
+============================================================
+>>> Find magnetic insulators containing Fe and O with band gap between 1 and 3 eV.
+============================================================
+2026-05-07 11:16:27,313 [INFO] [MP API] search({'elements': ['Fe', 'O'], 'is_metal': False, 'is_magnetic': True, 'band_gap': (1.0, 3.0)})
+2026-05-07 11:16:27,314 [WARNING] [_fetch] 第1次失败：You have specified the following kwargs which are unknown to `search`, but may be known to `_search`
+    is_magnetic
+Please see the documentation:
+    `search`: https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.summary.SummaryRester.html#mp_api.client.routes.materials.summary.SummaryRester.search
+   `_search`: https://api.materialsproject.org/redoc#tag/Materials-Summary/operation/search_materials_summary__get，1.0s后重试
+2026-05-07 11:16:28,315 [INFO] [MP API] search({'elements': ['Fe', 'O'], 'is_metal': False, 'is_magnetic': True, 'band_gap': (1.0, 3.0)})
+2026-05-07 11:16:28,315 [WARNING] [_fetch] 第2次失败：You have specified the following kwargs which are unknown to `search`, but may be known to `_search`
+    is_magnetic
+Please see the documentation:
+    `search`: https://materialsproject.github.io/api/_autosummary/mp_api.client.routes.materials.summary.SummaryRester.html#mp_api.client.routes.materials.summary.SummaryRester.search
+   `_search`: https://api.materialsproject.org/redoc#tag/Materials-Summary/operation/search_materials_summary__get，2.0s后重试
+2026-05-07 11:16:30,316 [INFO] [MP API] search({'elements': ['Fe', 'O'], 'is_metal': False, 'is_magnetic': True, 'band_gap': (1.0, 3.0)})
+2026-05-07 11:16:33,976 [INFO] [MP API] search({'chemsys': 'Fe-O', 'is_metal': False, 'band_gap': (1.0, 3.0)})
+Retrieving SummaryDoc documents: 100%|███| 40/40 [00:00<?, ?it/s]
+2026-05-07 11:16:43,757 [INFO] [cache] formula::Fe2O3::False
+2026-05-07 11:16:43,757 [INFO] [MP API] search({'formula': 'Fe3O4'})
+2026-05-07 11:16:43,758 [INFO] [MP API] search({'chemsys': 'Fe-O', 'is_stable': True, 'is_metal': False, 'band_gap': (1.0, 3.0)})
+Retrieving SummaryDoc documents: 100%|███████████████████████████████████████████████████████████████| 30/30 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|█████████████████████████████████████████████████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 11:16:55,876 [INFO] [MP API] search({'chemsys': 'Fe-O', 'formula': 'Fe2O3', 'is_stable': True, 'is_metal': False, 'band_gap': (1.0, 3.0)})
+2026-05-07 11:16:55,876 [INFO] [MP API] search({'material_ids': ['mp-1274279', 'mp-1178392', 'mp-705555', 'mp-764417']})
+Retrieving SummaryDoc documents: 100%|█████████████████████████████████████████████████████████████████| 4/4 [00:00<?, ?it/s]
+2026-05-07 11:17:03,155 [INFO] [MP API] search({'chemsys': 'Fe-O', 'spacegroup_symbol': 'R-3c', 'band_gap': (1.0, 3.0)})
+Here is a comprehensive summary of **magnetic insulators containing Fe and O with band gaps between 1–3 eV** found in the Materials Project database:
+
+---
+
+## ✅ Stable (Thermodynamically Stable) Phase
+
+| Material ID | Formula | Space Group | Crystal System | Band Gap (eV) | Magnetic | Total Mag. (μB) | Energy Above Hull |
+|---|---|---|---|---|---|---|---|
+| **mp-1274279** | **FeO (Wüstite)** | **C2/m** | **Monoclinic** | **1.8157** | **Yes (antiferro)** | **0.0** | **0.0 eV/atom (stable)** |
+
+- **FeO** (mp-1274279) is the only **fully stable** magnetic Fe–O insulator in this band gap range. Its zero net magnetization suggests **antiferromagnetic ordering**.
+
+---
+
+## 📋 Metastable Phases (Energy Above Hull > 0, but magnetic insulators with 1–3 eV gaps)
+
+| Material ID | Formula | Space Group | Crystal System | Band Gap (eV) | Total Mag. (μB) | Eₕᵤₗₗ (eV/atom) |
+|---|---|---|---|---|---|---|
+| mp-705555 | Fe₁₀O₁₁ | P-1 | Triclinic | 1.4715 | 84.0 | 0.0443 |
+| mp-759504 | Fe₁₀O₁₁ | P-1 | Triclinic | 1.3086 | 42.0 | 0.0560 |
+| mp-705417 | Fe₁₁O₁₂ | P-1 | Triclinic | 1.4282 | 46.0 | 0.0488 |
+| mp-764417 | Fe₁₄O₁₅ | I4/m | **Tetragonal** | 1.0190 | 58.0 | 0.0583 |
+| mp-1224936 | Fe₁₅O₁₆ | R-3m | **Trigonal** | 1.4826 | 62.0 | 0.0834 |
+| mp-705551 | Fe₁₅O₁₆ | P1 | Triclinic | 1.1889 | 62.0 | 0.0763 |
+| mp-705424 | Fe₁₇O₁₈ | P-1 | Triclinic | 1.5383 | 70.0 | 0.0397 |
+| mp-706875 | Fe₂₁O₂₃ | P1 | Triclinic | 1.3538 | 88.0 | 0.0523 |
+| mp-705553 | Fe₂₃O₂₅ | P-1 | Triclinic | 1.2771 | 96.0 | 0.0495 |
+| mp-1178392 | **Fe₂O₃** | **Pbca** | **Orthorhombic** | **1.5656** | **80.0** | **0.1129** |
+| mp-1245019 | Fe₂O₃ | P1 | Triclinic | 1.1378 | 160.0 | 0.2887 |
+| mp-1245078 | Fe₂O₃ | P1 | Triclinic | 1.1123 | 158.0 | 0.3058 |
+| mp-1271978 | **Fe₃O₄** | **P1** | **Triclinic** | **1.2090** | **28.0** | **0.0265** |
+| mp-1181340 | Fe₃O₄ | P2/m | Monoclinic | 1.0689 | 14.0 | 0.1216 |
+
+---
+
+### 🔑 Key Takeaways
+
+1. **Only one fully stable phase**: **FeO (mp-1274279)** — monoclinic, antiferromagnetic, band gap of **1.82 eV**. This is the only thermodynamically stable (energy_above_hull = 0) magnetic Fe–O insulator in your specified range.
+
+2. **Metastable Fe₂O₃ polymorphs** (mp-1178392, mp-1245019, mp-1245078) have band gaps of 1.1–1.6 eV and are strongly magnetic.
+
+3. **Metastable Fe₃O₄ (magnetite-like) phases** — mp-1271978 has a band gap of **1.21 eV** and mp-1181340 has **1.07 eV**, both exhibiting magnetic ordering.
+
+4. **A rich family of non-stoichiometric Fe₁₀O₁₁–Fe₂₃O₂₅ phases** appear as metastable structures with band gaps clustering around **1.0–1.5 eV**, all theoretically predicted and magnetic.
+
+> *Note: The classic α-Fe₂O₃ (hematite, space group R-3c) — a well-known antiferromagnetic insulator with ~2.0–2.2 eV band gap — was not found in the returned results within this band gap window, possibly due to DFT band gap underestimation in the Materials Project database.*
+
+============================================================
+>>> 我想要获得特殊的金红石型的VO2结构信息并下载为POSCAR文件。
+============================================================
+2026-05-07 11:17:27,458 [INFO] [MP API] search({'formula': 'VO2'})
+Retrieving SummaryDoc documents: 100%|███████████████████████████████████████████████████████████████| 62/62 [00:00<?, ?it/s]
+2026-05-07 11:17:32,986 [INFO] [MP API] search({'formula': 'VO2', 'spacegroup_symbol': 'P4₂/mnm'})
+2026-05-07 11:17:34,539 [WARNING] [_fetch] 第1次失败：REST query returned with error status code 500 on URL https://api.materialsproject.org/materials/summary/?formula=VO2&spacegroup_symbol=P4%E2%82%82%2Fmnm&_limit=1000&_fields=material_id%2Cformula_pretty%2Cstructure%2Csymmetry%2Cnsites%2Cvolume%2Cdensity%2Cband_gap%2Cis_metal%2Cformation_energy_per_atom%2Cenergy_above_hull%2Cis_stable%2Cis_magnetic%2Ctotal_magnetization%2Ctheoretical with message:
+Response Internal Server Error，1.0s后重试
+2026-05-07 11:17:35,541 [INFO] [MP API] search({'formula': 'VO2', 'spacegroup_symbol': 'P4₂/mnm'})
+2026-05-07 11:17:36,874 [WARNING] [_fetch] 第2次失败：REST query returned with error status code 500 on URL https://api.materialsproject.org/materials/summary/?formula=VO2&spacegroup_symbol=P4%E2%82%82%2Fmnm&_limit=1000&_fields=material_id%2Cformula_pretty%2Cstructure%2Csymmetry%2Cnsites%2Cvolume%2Cdensity%2Cband_gap%2Cis_metal%2Cformation_energy_per_atom%2Cenergy_above_hull%2Cis_stable%2Cis_magnetic%2Ctotal_magnetization%2Ctheoretical with message:
+Response Internal Server Error，2.0s后重试
+2026-05-07 11:17:38,875 [INFO] [MP API] search({'formula': 'VO2', 'spacegroup_symbol': 'P4₂/mnm'})
+2026-05-07 11:17:44,365 [INFO] [MP API] search({'elements': ['V', 'O'], 'num_elements': 2, 'crystal_system': 'tetragonal'})
+Retrieving SummaryDoc documents: 100%|███████████████████████████████████████████████████████████████| 14/14 [00:00<?, ?it/s]
+2026-05-07 11:17:52,502 [INFO] [MP API] search({'material_ids': ['mp-19094']})
+Retrieving SummaryDoc documents: 100%|█████████████████████████████████████████████████████████████████| 1/1 [00:00<?, ?it/s]
+好的，虽然系统下载功能暂时出现异常，但我已获取到金红石型VO2的完整信息。以下是详细结构参数：
+
+---
+
+## 📐 金红石型（Rutile）VO₂ — mp-19094
+
+### 🔬 基本晶体学参数
+
+| 属性 | 数值 |
+|------|------|
+| **材料ID** | `mp-19094` |
+| **化学式** | VO₂ |
+| **空间群** | **P4₂/mnm**（金红石型，No. 136） |
+| **晶系** | 四方晶系（Tetragonal） |
+| **晶格常数** | a = b = **4.5072 Å**, c = **3.0444 Å** |
+| **α = β = γ** | 90.0° |
+| **晶胞体积** | 61.85 Å³ |
+| **密度** | **4.4537 g/cm³** |
+| **原子数/晶胞** | 6（2个V + 4个O） |
+
+### ⚡ 电子性质
+| 属性 | 数值 |
+|------|------|
+| **带隙** | **0.0 eV**（金属性） |
+| **形成能** | -2.4803 eV/atom |
+| **能量高于凸包** | 0.0422 eV/atom |
+| **稳定性** | 亚稳态（接近稳定） |
+| **实验/理论** | **实验结构** ✅ |
+
+### 🧲 磁学性质
+| 属性 | 数值 |
+|------|------|
+| **磁性** | 有磁性 |
+| **总磁矩** | **2.0 μB** |
+
+---
+
+### 📝 结构描述
+- 这是经典的**金红石型（Rutile）结构**，空间群 **P4₂/mnm**，与金红石 TiO₂ 同构。
+- 钒（V）原子处于八面体配位，氧（O）原子形成共边和共角的八面体网络。
+- 该结构是**实验观测到的**，且非常接近热力学稳定态（energy_above_hull 仅 0.042 eV/atom）。
+- 室温下 VO₂ 会发生金属-绝缘体相变（MIT），金红石相是高温金属相。
+
+### ⬇️ 如何获取 POSCAR 文件
+
+由于系统下载功能临时不可用，您可以通过以下方式获取 POSCAR：
+
+1. **访问 Materials Project 网站**：https://next-gen.materialsproject.org/materials/mp-19094
+2. 点击 **"Download"** → 选择 **"POSCAR"** 格式
+3. 或者直接使用该材料ID下载 CIF 再通过 VESTA 等软件转换为 POSCAR
+
+需要我帮您做其他分析吗？比如查看能带结构、态密度或其它VO2相的信息？
+
+============================================================
+>>> 我想要知道稳定的FeVO4的band_gap是多少，如果它是导体请下载为POSCAR文件，如果不是请告诉我它的band_gap是多少。
+============================================================
+2026-05-07 11:18:11,305 [INFO] [MP API] search({'formula': 'FeVO4', 'energy_above_hull': (0, 0)})
+2026-05-07 11:18:15,832 [INFO] [MP API] search({'formula': 'FeVO4'})
+Retrieving SummaryDoc documents: 100%|█████████████████████████████████████████████████████████████████| 4/4 [00:00<?, ?it/s]
+2026-05-07 11:18:22,696 [INFO] [MP API] search({'chemsys': 'Fe-V-O', 'formula': 'FeVO4'})
+Retrieving SummaryDoc documents: 100%|█████████████████████████████████████████████████████████████████| 4/4 [00:00<?, ?it/s]
+看起来下载功能遇到了临时的内部错误，不过我先为您总结一下信息：
+
+---
+
+## ✅ 最终回答
+
+### 📂 最接近稳定的 FeVO₄ 相信息
+| 属性 | 值 |
+|:---|:---|
+| **material_id** | **mp-18949** |
+| **化学式** | VFeO₄ (FeVO₄) |
+| **空间群** | Cmcm（正交晶系） |
+| **Energy Above Hull** | **0.0172 eV/atom**（最接近稳定） |
+| **Band Gap** | **0.0 eV** |
+| **是否为金属（导体）** | **✅ 是，它是导体** |
+| **磁性** | ✅ 有磁性（总磁化强度：10.0 μB） |
+
+**该相是导体（金属）**，因此按照您的要求，本应下载 POSCAR 文件。但由于系统临时错误未能成功下载，建议您稍后通过以下命令手动下载：
+
+```bash
+# 在本地使用 MP API 或 pymatgen
+from pymatgen.ext.matproj import MPRester
+with MPRester("YOUR_API_KEY") as mpr:
+    mpr.get_structure_by_material_id("mp-18949").to(filename="FeVO4_mp-18949.vasp", fmt="poscar")
+```
+
+或者也可以直接从 [Materials Project - mp-18949](https://next-gen.materialsproject.org/materials/mp-18949) 页面下载 POSCAR 格式的结构文件。
