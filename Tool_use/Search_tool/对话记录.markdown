@@ -1,0 +1,268 @@
+>>> Find the most stable Fe2O3 structure and download its CIF file.
+2026-05-07 09:44:21,008 [INFO] [query] mode=formula  input='Fe2O3'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:44:49,735 [INFO] [query] mode=material_id  input='mp-19770'
+2026-05-07 09:44:49,744 [INFO] [query] mode=material_id  input='mp-19770'
+Retrieving SummaryDoc documents: 100%|█████████████| 1/1 [00:00<00:00, 1002.70it/s]
+2026-05-07 09:44:51,510 [INFO] 已保存 CIF → structures\mp-19770_Fe2O3.cif
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Here's a summary of the results:
+
+## Most Stable Fe₂O₃ Structure: **Hematite (α-Fe₂O₃)**
+
+| Property | Value |
+|---|---|
+| **Material ID** | `mp-19770` |
+| **Formula** | Fe₂O₃ |
+| **Space Group** | R-3c (Trigonal) |
+| **Lattice Parameters** | a = 8.819 Å, b = 5.093 Å, c = 5.452 Å |
+| **Angles** | α = 90°, β = 122.63°, γ = 90° |
+| **Volume** | 206.22 Å³ |
+| **Composition** | Fe₈O₁₂ (20 atoms per unit cell) |
+
+✅ **CIF file downloaded** to: `structures\mp-19770_Fe2O3.cif`
+
+This is hematite, the most common and thermodynamically stable polymorph of iron(III) oxide. It's an important material used as a pigment, in corrosion protection, and as a catalyst.
+
+>>> Get mp-126 and save it as POSCAR for VASP calculation.
+2026-05-07 09:44:59,557 [INFO] [query] mode=material_id  input='mp-126'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:45:04,563 [INFO] [cache] material_id::mp-126
+2026-05-07 09:45:04,563 [INFO] [cache] material_id::mp-126
+2026-05-07 09:45:04,566 [INFO] 已保存 POSCAR → structures\mp-126_Pt.POSCAR
+Here's a summary of what was done:
+
+## ✅ mp-126 — Platinum (Pt)
+
+### Structure Details
+| Property | Value |
+|----------|-------|
+| **Material** | Platinum (Pt) |
+| **Space Group** | Fm-3m (Face-Centered Cubic) |
+| **Lattice Parameters** | a = b = c = **3.9432 Å** |
+| **Angles** | α = β = γ = **90°** |
+| **Volume** | 61.31 Å³ |
+| **Atoms per cell** | 4 (Pt₄) |
+
+### POSCAR Saved
+The structure file has been saved as:
+📁 **`structures\mp-126_Pt.POSCAR`**
+
+This POSCAR file is ready to use for VASP calculations. It contains the FCC Pt unit cell with:
+- Lattice vectors for the cubic cell
+- 4 Pt atoms in the conventional FCC positions (corners + face centers)
+
+
+>>> Find the most stable Fe2O3 structure and download its CIF file.
+2026-05-07 09:44:21,008 [INFO] [query] mode=formula  input='Fe2O3'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:44:49,735 [INFO] [query] mode=material_id  input='mp-19770'
+2026-05-07 09:44:49,744 [INFO] [query] mode=material_id  input='mp-19770'
+Retrieving SummaryDoc documents: 100%|█████████████| 1/1 [00:00<00:00, 1002.70it/s]
+2026-05-07 09:44:51,510 [INFO] 已保存 CIF → structures\mp-19770_Fe2O3.cif
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Here's a summary of the results:
+
+## Most Stable Fe₂O₃ Structure: **Hematite (α-Fe₂O₃)**
+
+| Property | Value |
+|---|---|
+| **Material ID** | `mp-19770` |
+| **Formula** | Fe₂O₃ |
+| **Space Group** | R-3c (Trigonal) |
+| **Lattice Parameters** | a = 8.819 Å, b = 5.093 Å, c = 5.452 Å |
+| **Angles** | α = 90°, β = 122.63°, γ = 90° |
+| **Volume** | 206.22 Å³ |
+| **Composition** | Fe₈O₁₂ (20 atoms per unit cell) |
+
+✅ **CIF file downloaded** to: `structures\mp-19770_Fe2O3.cif`
+
+This is hematite, the most common and thermodynamically stable polymorph of iron(III) oxide. It's an important material used as a pigment, in corrosion protection, and as a catalyst.
+
+>>> Get mp-126 and save it as POSCAR for VASP calculation.
+2026-05-07 09:44:59,557 [INFO] [query] mode=material_id  input='mp-126'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:45:04,563 [INFO] [cache] material_id::mp-126
+2026-05-07 09:45:04,563 [INFO] [cache] material_id::mp-126
+2026-05-07 09:45:04,566 [INFO] 已保存 POSCAR → structures\mp-126_Pt.POSCAR
+Here's a summary of what was done:
+
+## ✅ mp-126 — Platinum (Pt)
+
+### Structure Details
+| Property | Value |
+|----------|-------|
+| **Material** | Platinum (Pt) |
+| **Space Group** | Fm-3m (Face-Centered Cubic) |
+| **Lattice Parameters** | a = b = c = **3.9432 Å** |
+| **Angles** | α = β = γ = **90°** |
+| **Volume** | 61.31 Å³ |
+| **Atoms per cell** | 4 (Pt₄) |
+
+### POSCAR Saved
+The structure file has been saved as:
+📁 **`structures\mp-126_Pt.POSCAR`**
+
+This POSCAR file is ready to use for VASP calculations. It contains the FCC Pt unit cell with:
+- Lattice vectors for the cubic cell
+- 4 Pt atoms in the conventional FCC positions (corners + face centers)
+(workflow) PS D:\workflow\catalysis_tools_mod> python mp_tool_use.py
+
+>>> 搜索所有含Fe，O元素且具有稳定结构的材料，并对他们的结构信息进行统计。
+2026-05-07 09:55:05,263 [INFO] [query] mode=elements  input='Fe, O'
+Retrieving SummaryDoc documents: 100%|███████████████████| 477/477 [00:00<?, ?it/s]
+2026-05-07 09:55:16,034 [INFO] [query] mode=chemsys  input='Fe-O'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 2/2 [00:00<?, ?it/s]
+2026-05-07 09:55:20,236 [INFO] [query] mode=material_id  input='mp-19770'
+2026-05-07 09:55:20,236 [INFO] [query] mode=material_id  input='mp-1274279'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:55:33,953 [INFO] [query] mode=material_id  input='mp-761390'
+2026-05-07 09:55:33,973 [INFO] [query] mode=material_id  input='mp-31761'
+2026-05-07 09:55:33,973 [INFO] [query] mode=material_id  input='mp-504570'
+2026-05-07 09:55:34,144 [INFO] [query] mode=material_id  input='mp-555287'
+2026-05-07 09:55:34,207 [INFO] [query] mode=material_id  input='mp-19421'
+2026-05-07 09:55:34,407 [INFO] [query] mode=material_id  input='mp-22265'
+2026-05-07 09:55:34,423 [INFO] [query] mode=material_id  input='mp-31755'
+2026-05-07 09:55:34,455 [INFO] [query] mode=material_id  input='mp-505009'
+2026-05-07 09:55:34,501 [INFO] [query] mode=material_id  input='mp-19102'
+2026-05-07 09:55:34,546 [INFO] [query] mode=material_id  input='mp-1193066'
+2026-05-07 09:55:34,624 [INFO] [query] mode=material_id  input='mp-1201003'
+2026-05-07 09:55:34,749 [INFO] [query] mode=material_id  input='mp-1201412'
+2026-05-07 09:55:35,076 [INFO] [query] mode=material_id  input='mp-21016'
+2026-05-07 09:55:35,090 [INFO] [query] mode=material_id  input='mp-30947'
+2026-05-07 09:55:35,137 [INFO] [query] mode=material_id  input='mp-542120'
+2026-05-07 09:55:35,263 [INFO] [query] mode=material_id  input='mp-759361'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:55:36,241 [INFO] [query] mode=material_id  input='mp-828605'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:55:36,348 [INFO] [query] mode=material_id  input='mp-1104680'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:55:36,847 [INFO] [query] mode=material_id  input='mp-561036'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|█████████████| 1/1 [00:00<00:00, 1000.31it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+以下是所有含 **Fe 和 O 元素**的稳定结构材料的详细统计信息：
+
+---
+
+## 📊 材料结构信息统计总表
+
+共搜索到 **20 种稳定材料**（含 Fe 和 O 元素），统计如下：
+
+### 一、Fe-O 二元体系（2种）
+
+| 材料ID | 化学式 | 晶系 | 空间群 | 晶胞参数 (Å, °) | 体积 (Å³) | 原子数 |
+|--------|--------|------|--------|----------------|-----------|-------|
+| mp-19770 | **Fe₂O₃** | 三方(Trigonal) | R-3c | a=8.819, b=5.093, c=5.452, β=122.63° | 206.22 | 20 |
+| mp-1274279 | **FeO** | 单斜(Monoclinic) | C2/m | a=3.102, b=3.107, c=5.319, α=74.12°, β=73.57°, γ=61.15° | 42.49 | 4 |
+
+### 二、多元 Fe-O 体系（18种）
+
+| 材料ID | 化学式 | 晶系 | 空间群 | 体积 (Å³) | 原子数 | 备注 |
+|--------|--------|------|--------|-----------|-------|------|
+| mp-761390 | **TaFeO₄** | 四方(Tetragonal) | I4₁md | 266.49 | 24 | Ta-Fe-O |
+| mp-31761 | **NbFeO₄** | 单斜(Monoclinic) | C2/m | 155.78 | 12 | Nb-Fe-O |
+| mp-504570 | **K₃FeO₃** | 单斜(Monoclinic) | C2/m | 500.29 | 28 | K-Fe-O |
+| mp-555287 | **Rb₃FeO₃** | 单斜(Monoclinic) | C2/m | 280.17 | 14 | Rb-Fe-O |
+| mp-19421 | **FeWO₄** | 单斜(Monoclinic) | P2/c | 132.55 | 12 | W-Fe-O |
+| mp-22265 | **Fe(SbO₂)₂** | 四方(Tetragonal) | P4₂/mbc | 432.13 | 28 | Sb-Fe-O |
+| mp-31755 | **Ta₂FeO₆** | 四方(Tetragonal) | P4₂/mnm | 202.39 | 18 | Ta-Fe-O |
+| mp-505009 | **Fe(SbO₃)₂** | 四方(Tetragonal) | P4₂/mnm | 206.11 | 18 | Sb-Fe-O |
+| mp-19102 | **Sr₂FeO₄** | 四方(Tetragonal) | I4/mmm | 182.55 | 14 | Sr-Fe-O |
+| mp-1193066 | **Cs₃FeO₃** | 单斜(Monoclinic) | P2₁/c | 664.01 | 28 | Cs-Fe-O |
+| mp-1201003 | **Cs₄FeO₄** | 单斜(Monoclinic) | P2₁/c | 860.17 | 36 | Cs-Fe-O |
+| mp-1201412 | **Cs₅FeO₄** | 单斜(Monoclinic) | P2₁/c | 1064.63 | 40 | Cs-Fe-O |
+| mp-21016 | **FeAsO₄** | 单斜(Monoclinic) | P2₁/c | 300.76 | 24 | As-Fe-O |
+| mp-30947 | **Na₃FeO₃** | 单斜(Monoclinic) | P2₁/c | 375.90 | 28 | Na-Fe-O |
+| mp-542120 | **Ba₂FeO₄** | 单斜(Monoclinic) | P2₁/c | 477.33 | 28 | Ba-Fe-O |
+| mp-759361 | **FeP₄O₁₁** | 单斜(Monoclinic) | P2₁/c | 837.15 | 64 | P-Fe-O |
+| mp-828605 | **Rb₄FeO₄** | 单斜(Monoclinic) | P2₁/c
+
+>>> 获取V2O5, V2O3，VO2三种结构的mp-id，空间群，晶系等基本信息并下载为POSCAR文件。
+2026-05-07 09:55:58,052 [INFO] [query] mode=formula  input='V2O5'
+2026-05-07 09:55:58,052 [INFO] [query] mode=formula  input='V2O3'
+2026-05-07 09:55:58,052 [INFO] [query] mode=formula  input='VO2'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:56:05,118 [INFO] [query] mode=material_id  input='mp-25279'
+2026-05-07 09:56:05,118 [INFO] [query] mode=material_id  input='mp-21579'
+2026-05-07 09:56:05,136 [INFO] [query] mode=material_id  input='mp-541404'
+2026-05-07 09:56:05,136 [INFO] [query] mode=material_id  input='mp-25279'
+2026-05-07 09:56:05,212 [INFO] [query] mode=material_id  input='mp-21579'
+2026-05-07 09:56:05,242 [INFO] [query] mode=material_id  input='mp-541404'
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:56:07,389 [INFO] 已保存 POSCAR → structures\mp-541404_VO2.POSCAR
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:56:07,473 [INFO] 已保存 POSCAR → structures\mp-25279_V2O5.POSCAR
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+2026-05-07 09:56:07,529 [INFO] 已保存 POSCAR → structures\mp-21579_V2O3.POSCAR
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+Retrieving SummaryDoc documents: 100%|███████████████████████| 1/1 [00:00<?, ?it/s]
+所有信息已获取完毕！以下是三种钒氧化物的详细汇总：
+
+---
+
+## 📋 三种钒氧化物基本信息汇总
+
+### 1️⃣ V₂O₅ (五氧化二钒)
+| 项目 | 内容 |
+|------|------|
+| **MP-ID** | `mp-25279` |
+| **空间群** | **Pmmn** (正交晶系) |
+| **晶系** | Orthorhombic (正交) |
+| **晶格参数** | a = 3.552 Å, b = 4.263 Å, c = 11.604 Å |
+| **角度** | α = β = γ = 90° |
+| **体积** | 175.72 Å³ |
+| **原胞组成** | V₄O₁₀ |
+| **POSCAR** | ✅ 已下载 → `structures/mp-25279_V2O5.POSCAR` |
+
+### 2️⃣ V₂O₃ (三氧化二钒)
+| 项目 | 内容 |
+|------|------|
+| **MP-ID** | `mp-21579` |
+| **空间群** | **Ia-3̄** (立方晶系) |
+| **晶系** | Cubic (立方) |
+| **晶格参数** | a = b = c = 9.574 Å |
+| **角度** | α = β = γ = 90° |
+| **体积** | 877.60 Å³ |
+| **原胞组成** | V₃₂O₄₈ |
+| **POSCAR** | ✅ 已下载 → `structures/mp-21579_V2O3.POSCAR` |
+
+### 3️⃣ VO₂ (二氧化钒)
+| 项目 | 内容 |
+|------|------|
+| **MP-ID** | `mp-541404` |
+| **空间群** | **C2/m** (单斜晶系) |
+| **晶系** | Monoclinic (单斜) |
+| **晶格参数** | a = 3.688 Å, b = 6.265 Å, c = 6.405 Å |
+| **角度** | α = 106.0°, β = 90°, γ = 107.1° |
+| **体积** | 135.44 Å³ |
+| **原胞组成** | V₄O₈ |
+| **POSCAR** | ✅ 已下载 → `structures/mp-541404_VO2.POSCAR` |
+
+---
+
+### 📌 关键差异总结
+| 氧化物 | 钒价态 | 晶系 | 空间群 | 特征 |
+|--------|--------|------|--------|------|
+| **V₂O₅** | V⁵⁺ | 正交 | Pmmn | 层状结构，常用作催化剂 |
+| **V₂O₃** | V³⁺ | 立方 | Ia-3̄ | 等轴晶系，具有金属-绝缘体转变 |
+| **VO₂** | V⁴⁺ | 单斜 | C2/m | 著名的金属-绝缘体相变材料(~68°C) |
+
+三个POSCAR文件已成功保存到 `./structures/` 目录下。
