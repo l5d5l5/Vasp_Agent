@@ -1,7 +1,11 @@
 # ══════════════════════════════════════════════════════════════
-# mp_tool_use.py  —  重新设计：对应 mp_query_service.py 重构版
+# mp_tool_use.py
 # 工具：mp_search_formula / mp_search_elements /
 #       mp_search_criteria / mp_fetch / mp_download
+#
+# 执行后端（通过 MP_EXECUTOR_MODE 切换）：
+#   local   → LocalToolExecutor  精确参数控制，直连 MP API（默认）
+#   mcp_llm → MCPToolExecutor    MP 官方 MCP Server，失败自动降级到 Local
 # ══════════════════════════════════════════════════════════════
 
 import os
@@ -73,24 +77,17 @@ def _normalize_tool_call_ids(msg: Any, provider: str) -> Any:
 
 def message_to_dict(msg: Any) -> Dict:
     """
-    将 OpenAI SDK ChatCompletionMessage 转为 DeepSeek 接受的纯字典。
-
-    修复要点（DeepSeek Thinking Mode）：
-      - content=None        → ""（DeepSeek 不接受 null）
-      - reasoning_content   → 必须原样传回，否则第二轮请求报 400
-      - tool_calls          → 转为标准列表格式
+    ChatCompletionMessage → 纯字典。
+    - content=None      → ""（DeepSeek 不接受 null）
+    - reasoning_content → 原样传回（DeepSeek Thinking Mode）
     """
     d: Dict[str, Any] = {
         "role":    msg.role,
         "content": msg.content if msg.content is not None else "",
     }
-
-    # 保留 reasoning_content（DeepSeek Thinking Mode 必须传回）
-    # getattr 兼容不支持 thinking mode 的其他模型（返回 None 时跳过）
     reasoning = getattr(msg, "reasoning_content", None)
     if reasoning:
         d["reasoning_content"] = reasoning
-
     if msg.tool_calls:
         d["tool_calls"] = [
             {
@@ -103,7 +100,6 @@ def message_to_dict(msg: Any) -> Dict:
             }
             for tc in msg.tool_calls
         ]
-
     return d
 
 
@@ -125,12 +121,13 @@ class MPToolExecutor(ABC):
 
 
 # ══════════════════════════════════════════════
-# 本地执行器（对应新 MPQueryService）
+# 本地执行器
+# 直连 MPQueryService，5 个工具全部原生支持
 # ══════════════════════════════════════════════
 
 class LocalToolExecutor(MPToolExecutor):
     """
-    对应 mp_query_service.py 重构版，支持 5 个工具：
+    对应 mp_query_service.py，支持 5 个工具：
       mp_search_formula   → query_by_formula()
       mp_search_elements  → query_by_elements()
       mp_search_criteria  → query_by_criteria()
@@ -150,31 +147,21 @@ class LocalToolExecutor(MPToolExecutor):
         return await asyncio.to_thread(self._sync, tool_name, tool_args)
 
     # ── 工具分发 ──────────────────────────────
+    async def execute(self, tool_name: str, tool_args: Dict) -> str:
+        return await asyncio.to_thread(self._sync, tool_name, tool_args)
+
     def _sync(self, tool_name: str, tool_args: Dict) -> str:
         try:
-            if tool_name == "mp_search_formula":
-                payload = self._search_formula(tool_args)
-
-            elif tool_name == "mp_search_elements":
-                payload = self._search_elements(tool_args)
-
-            elif tool_name == "mp_search_criteria":
-                payload = self._search_criteria(tool_args)
-
-            elif tool_name == "mp_fetch":
-                payload = self._fetch(tool_args)
-
-            elif tool_name == "mp_download":
-                payload = self._download(tool_args)
-
-            else:
-                payload = {"error": f"unknown tool: {tool_name}"}
-
+            if   tool_name == "mp_search_formula":   payload = self._search_formula(tool_args)
+            elif tool_name == "mp_search_elements":  payload = self._search_elements(tool_args)
+            elif tool_name == "mp_search_criteria":  payload = self._search_criteria(tool_args)
+            elif tool_name == "mp_fetch":            payload = self._fetch(tool_args)
+            elif tool_name == "mp_download":         payload = self._download(tool_args)
+            else:                                    payload = {"error": f"unknown tool: {tool_name}"}
         except Exception as e:
             payload = {"error": str(e)}
-
         return json.dumps(payload, cls=MontyEncoder, ensure_ascii=False, indent=2)
-
+    
     # ── Tool 1: mp_search_formula ─────────────
     def _search_formula(self, args: Dict) -> Dict:
         results = self._svc.query_by_formula(
@@ -203,10 +190,6 @@ class LocalToolExecutor(MPToolExecutor):
 
     # ── Tool 3: mp_search_criteria ────────────
     def _search_criteria(self, args: Dict) -> Dict:
-        """
-        将 LLM 传来的扁平参数（band_gap_min/max 等）
-        转换为 MPQueryService.query_by_criteria() 接受的格式。
-        """
         criteria: Dict[str, Any] = {}
         n = args.pop("max_results", 5)
 
@@ -304,7 +287,6 @@ class LocalToolExecutor(MPToolExecutor):
         }
 
     # ── 字段过滤工具 ──────────────────────────
-    # search 结果：精简字段，节省 token
     _SEARCH_FIELDS = (
         "material_id", "formula", "space_group", "crystal_system",
         "a", "b", "c",
@@ -313,10 +295,8 @@ class LocalToolExecutor(MPToolExecutor):
         "is_magnetic", "total_magnetization",
         "nsites", "density", "theoretical",
     )
-
     # fetch 结果：完整字段（含角度）
     _FETCH_FIELDS = _SEARCH_FIELDS + ("alpha", "beta", "gamma", "volume")
-
     # 始终排除的大字段
     _EXCLUDE = {"_structure", "xyz", "cif", "poscar"}
 
@@ -334,69 +314,191 @@ class LocalToolExecutor(MPToolExecutor):
 
 
 # ══════════════════════════════════════════════
-# MCP 执行器（方案 A，保留备用）
+# MCP 执行器
+# 设计逻辑：
+#   1. start() 启动 MCP Server 子进程
+#      └── 成功 → tools 属性返回 MCP 原生 Schema（自动同步）
+#      └── 失败 → 降级标志位置 True，tools 返回本地 Schema
+#
+#   2. execute() 执行工具调用
+#      └── MCP 在线 → 直接 call_tool()（透传原生工具名）
+#      └── MCP 离线 → 委托给内置的 LocalToolExecutor
+#
+#   3. mp_download 始终降级到本地执行（MCP 无此工具）
 # ══════════════════════════════════════════════
 
 class MCPToolExecutor(MPToolExecutor):
-    """官方 mp_api MCP Server（方案 A）。"""
 
-    SERVER_PATH = Path("./mp_api/mcp/server.py")
+    _DOWNLOAD_TOOL = {
+        "type": "function",
+        "function": {
+            "name": "mp_download",
+            "description": (
+                "Download a crystal structure file from the Materials Project. "
+                "Supports CIF, POSCAR, and XYZ formats. "
+                "Use this after finding a material_id with search or fetch."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "material_id": {
+                        "type": "string",
+                        "description": "Materials Project ID, e.g. 'mp-19770'",
+                    },
+                    "fmt": {
+                        "type": "string",
+                        "enum": ["cif", "poscar", "xyz"],
+                        "description": "File format. Default: cif",
+                    },
+                    "save_dir": {
+                        "type": "string",
+                        "description": "Directory to save the file. Default: ./structures",
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "Custom filename without extension. Optional.",
+                    },
+                },
+                "required": ["material_id"],
+            },
+        },
+    }
 
     def __init__(self, mp_api_key: str):
-        self.mp_api_key = mp_api_key
-        self._client    = None
+        self.mp_api_key          = mp_api_key
+        self._client             = None
+        self._mcp_tools:         List[str]  = []
+        self._mcp_tools_schema:  List[Dict] = []
+        self._fallback:          Optional[LocalToolExecutor] = None
+        self._use_fallback:      bool = False
 
-    async def start(self):
-        from fastmcp import Client
-        from fastmcp.client.transports import PythonStdioTransport
-        transport    = PythonStdioTransport(
-            script_path = str(self.SERVER_PATH),
-            env         = {"MP_API_KEY": self.mp_api_key},
-        )
-        self._client = Client(transport=transport)
-        await self._client.__aenter__()
-        mcp_tools = await self._client.list_tools()
-        print(f"[MCP] tools: {[t.name for t in mcp_tools]}")
+    @property
+    def tools(self) -> List[Dict]:
+        """MCP 在线 → MCP 原生 Schema；离线 → 本地 5 工具 Schema。"""
+        if self._mcp_tools_schema and not self._use_fallback:
+            return self._mcp_tools_schema + [self._DOWNLOAD_TOOL]
+        return MP_TOOL_SCHEMA
+
+    async def start(self) -> bool:
+        """启动 MCP Server 子进程。失败时自动激活降级，不抛出异常。"""
+        import sys
+        try:
+            from fastmcp import Client
+            from fastmcp.client.transports import StdioTransport
+
+            transport = StdioTransport(
+                command = sys.executable,
+                args    = ["-m", "mp_api.mcp.server"],
+                env     = {**os.environ, "MP_API_KEY": self.mp_api_key},
+            )
+            self._client = Client(transport=transport)
+            await self._client.__aenter__()
+
+            mcp_tools             = await self._client.list_tools()
+            self._mcp_tools       = [t.name for t in mcp_tools]
+            self._mcp_tools_schema = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name":        t.name,
+                        "description": t.description,
+                        "parameters":  t.inputSchema,
+                    }
+                }
+                for t in mcp_tools
+            ]
+            print(f"[MCP] ✅ 已连接 | 工具: {self._mcp_tools}")
+            return True
+
+        except Exception as e:
+            print(f"[MCP] ❌ 启动失败: {e}")
+            print(f"[MCP] ⚠️  自动降级到 LocalToolExecutor")
+            self._activate_fallback()
+            return False
+
+    def _activate_fallback(self):
+        self._use_fallback = True
+        self._fallback     = LocalToolExecutor(self.mp_api_key)
+        print(f"[Fallback] ✅ LocalToolExecutor 已就绪")
 
     async def execute(self, tool_name: str, tool_args: Dict) -> str:
-        # MCP 方案暂只映射 search/fetch，download 降级到本地
-        if tool_name in ("mp_search_formula", "mp_search_elements", "mp_search_criteria"):
-            result = await self._client.call_tool("search", {"query": str(tool_args)})
-            return self._text(result)
-        elif tool_name == "mp_fetch":
-            mid    = tool_args["material_ids"][0]
-            result = await self._client.call_tool("fetch", {"query": mid})
-            return self._text(result)
-        elif tool_name == "mp_download":
-            return await self._local_download(tool_args)
-        return json.dumps({"error": f"unknown tool: {tool_name}"})
+        # 整体降级模式
+        if self._use_fallback:
+            if self._fallback is None:
+                self._activate_fallback()
+            return await self._fallback.execute(tool_name, tool_args)
 
+        if self._client is None:
+            return json.dumps({"error": "MCP client 未启动"})
+
+        try:
+            # mp_download 始终本地执行（MCP 无此工具）
+            if tool_name == "mp_download":
+                return await self._local_download(tool_args)
+
+            if tool_name in self._mcp_tools:
+                result = await self._client.call_tool(tool_name, tool_args)
+                return self._extract_text(result)
+
+            return json.dumps({
+                "error":           f"unknown tool: {tool_name}",
+                "available_tools": self._mcp_tools + ["mp_download"],
+            })
+        
+        except Exception as e:
+            print(f"[MCP] ⚠️  {tool_name} 执行失败: {e}，降级重试...")
+            if self._fallback is None:
+                self._activate_fallback()
+            try:
+                return await self._fallback.execute(tool_name, tool_args)
+            except Exception as e2:
+                return json.dumps({"error": f"MCP: {e} | Local: {e2}"})
+            
+    # ── download 本地降级 ──────────────────────────────────────
     async def _local_download(self, args: Dict) -> str:
         from search import MPQueryService, save_structure_to_disk
         svc     = MPQueryService(api_key=self.mp_api_key)
-        results = svc.query_by_material_id(args["material_id"])
+        mid     = args["material_id"]
+        results = svc.query_by_material_id(mid)
         if not results:
-            return json.dumps({"error": f"not found: {args['material_id']}"})
-        item  = results[0]
-        saved = save_structure_to_disk(
+            return json.dumps({"error": f"not found: {mid}"})
+        item     = results[0]
+        filename = args.get("filename") or f"{item['material_id']}_{item['formula']}"
+        saved    = save_structure_to_disk(
             struct   = item["_structure"],
             save_dir = args.get("save_dir", "./structures"),
-            filename = f"{item['material_id']}_{item['formula']}",
+            filename = filename,
             fmt      = args.get("fmt", "cif"),
         )
-        return json.dumps({"material_id": args["material_id"],
-                           "saved_files": saved, "success": bool(saved)})
+        return json.dumps({
+            "material_id": mid, "formula": item["formula"],
+            "fmt":         args.get("fmt", "cif"),
+            "saved_files": saved, "success": bool(saved),
+        }, ensure_ascii=False)
+
+    # ── MCP 返回值解析 ─────────────────────────────────────────
 
     @staticmethod
-    def _text(result: Any) -> str:
-        if result and hasattr(result[0], "text"):
-            return result[0].text
-        return json.dumps({"error": "empty response"})
+    def _extract_text(result: Any) -> str:
+        """兼容 fastmcp CallToolResult 的多种返回格式。"""
+        if hasattr(result, "content"):
+            content = result.content
+            if content and hasattr(content[0], "text"):
+                return content[0].text
+            return str(content)
+        if isinstance(result, list):
+            if result and hasattr(result[0], "text"):
+                return result[0].text
+            return str(result)
+        if isinstance(result, str):
+            return result
+        return json.dumps({"error": f"unexpected result type: {type(result)}"})
 
     async def close(self):
         if self._client:
             await self._client.__aexit__(None, None, None)
-
+            self._client = None
+            print("[MCP] 连接已关闭")
 
 # ══════════════════════════════════════════════
 # 统一对话循环
@@ -463,31 +565,42 @@ async def main():
         raise ValueError("❌ MP_API_KEY 未设置，请检查 .env 文件")
     if not LLM_KEY:
         raise ValueError("❌ LLM_API_KEY 未设置，请检查 .env 文件")
-
-    executor = LocalToolExecutor(mp_api_key=MP_KEY)
-
-    questions = [
-        # 化学式查询
+    
+    # ── 执行模式选择 ──────────────────────────
+    # MP_EXECUTOR_MODE=local    → LocalToolExecutor（默认，精确控制）
+    # MP_EXECUTOR_MODE=mcp_llm  → MCPToolExecutor（MCP 优先，失败自动降级）
+    MODE = os.environ.get("MP_EXECUTOR_MODE", "local")
+    
+    QUESTIONS = [
         "Find the most stable Fe2O3 structure and download its CIF file.",
-        # 按 ID 精确获取
         "Get detailed properties of mp-126 and save it as POSCAR.",
-        # 多条件筛选
         "Find magnetic insulators containing Fe and O with band gap between 1 and 3 eV.",
-        # 元素组合查询
-        "我想要获得特殊的金红石型的VO2结构信息并下载为POSCAR文件。",
-        #特殊查询
-        "我想要知道稳定的FeVO4的band_gap是多少，如果它是导体请下载为POSCAR文件，如果不是请告诉我它的band_gap是多少。",
+        # "我想要获得特殊的金红石型的VO2结构信息并下载为POSCAR文件。",
+        # "我想要知道稳定的FeVO4的band_gap是多少，如果它是导体请下载为POSCAR文件，如果不是请告诉我它的band_gap是多少。",
     ]
 
-    for q in questions:
-        print(f"\n{'='*60}")
-        print(f">>> {q}")
-        print('='*60)
-        ans = await run(q, executor, llm_provider="deepseek", llm_api_key=LLM_KEY)
-        print(ans)
+    if MODE == "local":
+        print("🔧 后端：LocalToolExecutor")
+        executor = LocalToolExecutor(mp_api_key=MP_KEY)
 
-    await executor.close()
+    elif MODE == "mcp_llm":
+        executor = MCPToolExecutor(mp_api_key=MP_KEY)
+        print("\n[启动] MCP Server（失败时自动降级到 Local）...")
+        await executor.start()
+        backend = "LocalToolExecutor（降级）" if executor._use_fallback else "MCP Server"
+        print(f"[就绪] 当前后端: {backend}")
+        print(f"[工具] {[t['function']['name'] for t in executor.tools]}")
 
+    else:
+        raise ValueError(f"未知模式：{MODE}，可选：local / mcp_llm")
+
+    try:
+        for q in QUESTIONS:
+            print(f"\n{'='*60}\n>>> {q}\n{'='*60}")
+            ans = await run(q, executor, llm_provider="deepseek", llm_api_key=LLM_KEY)
+            print(ans)
+    finally:
+        await executor.close()
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
