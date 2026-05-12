@@ -310,3 +310,65 @@ class TestParticle:
             save_dir=str(tmp_path),
         )
         assert result["success"] is True
+
+
+import asyncio
+import json as _json
+
+
+class TestStructureToolExecutor:
+    def _run(self, coro):
+        return asyncio.get_event_loop().run_until_complete(coro)
+
+    def test_execute_struct_load(self, tmp_path):
+        from Structure_tool.structure_tool_executor import StructureToolExecutor
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        executor = StructureToolExecutor()
+        raw = self._run(executor.execute("struct_load", {"file_path": str(path)}))
+        result = _json.loads(raw)
+        assert result["formula"] == "Cu4"
+        assert result["nsites"] == 4
+
+    def test_execute_struct_supercell(self, tmp_path):
+        from Structure_tool.structure_tool_executor import StructureToolExecutor
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        executor = StructureToolExecutor()
+        raw = self._run(executor.execute("struct_supercell", {
+            "file_path": str(path),
+            "supercell_matrix": "2x2x1",
+            "save_dir": str(tmp_path),
+            "filename": "POSCAR_221",
+        }))
+        result = _json.loads(raw)
+        assert result["structure"]["nsites"] == 16
+
+    def test_execute_unknown_tool_returns_error(self):
+        from Structure_tool.structure_tool_executor import StructureToolExecutor
+        executor = StructureToolExecutor()
+        raw = self._run(executor.execute("nonexistent_tool", {}))
+        result = _json.loads(raw)
+        assert "error" in result
+
+    def test_tools_property_returns_6_entries(self):
+        from Structure_tool.structure_tool_executor import StructureToolExecutor
+        executor = StructureToolExecutor()
+        assert len(executor.tools) == 6
+
+    def test_execute_bad_args_returns_error_json(self):
+        from Structure_tool.structure_tool_executor import StructureToolExecutor
+        executor = StructureToolExecutor()
+        raw = self._run(executor.execute("struct_load", {}))  # missing file_path
+        result = _json.loads(raw)
+        assert "error" in result
