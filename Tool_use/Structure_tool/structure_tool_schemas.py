@@ -260,11 +260,12 @@ class ParticleArgs(BaseModel):
             "Used by modes: 'wulff', 'sphere'."
         ),
     )
-    layers: Optional[int] = Field(
+    layers: Optional[List[int]] = Field(
         None,
         description=(
-            "Number of layers (shells) for polyhedral shapes. "
-            "Used by modes: 'octahedron', 'fcc_cube'."
+            "Layer counts for polyhedral shapes (a list of integers, not a scalar). "
+            "For 'octahedron': [length, cutoff] e.g. [4, 0] (cutoff=0 = perfect octahedron). "
+            "For 'fcc_cube': one integer per surface, matching the 'surfaces' list e.g. [4, 3, 2]."
         ),
     )
     surfaces: Optional[List[List[int]]] = Field(
