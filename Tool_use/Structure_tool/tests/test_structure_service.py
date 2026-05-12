@@ -197,3 +197,116 @@ class TestSlab:
             supercell_matrix="2x2", save_dir=str(tmp_path), filename="POSCAR_2x2"
         )
         assert result_2x2["structure"]["nsites"] == result_1x1["structure"]["nsites"] * 4
+
+
+def _make_cu_slab_file(tmp_path):
+    """Build a Cu(111) slab and save it to tmp_path/POSCAR_slab."""
+    from pymatgen.core import Structure, Lattice
+    from pymatgen.io.vasp import Poscar
+    from Structure_tool.bulk_to_slab import BulkToSlabGenerator
+    lat = Lattice.cubic(3.615)
+    struct = Structure(lat, ["Cu"] * 4,
+                       [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+    gen = BulkToSlabGenerator(struct, save_dir=str(tmp_path))
+    gen.generate(miller_indices="111", target_layers=4, vacuum_thickness=15.0)
+    slabs = gen.get_slabs()
+    slab_path = tmp_path / "POSCAR_slab"
+    with open(slab_path, "wt", encoding="utf-8") as f:
+        f.write(Poscar(slabs[0]).get_str())
+    return str(slab_path)
+
+
+class TestAdsorption:
+    def test_analyze_returns_site_counts(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_cu_slab_file(tmp_path)
+        result = StructureService().adsorption(path, mode="analyze",
+                                               save_dir=str(tmp_path))
+        assert result["success"] is True
+        assert "site_counts" in result
+        total = sum(result["site_counts"].values())
+        assert total > 0
+
+    def test_generate_creates_structures(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_cu_slab_file(tmp_path)
+        result = StructureService().adsorption(
+            path, mode="generate", molecule_formula="CO",
+            save_dir=str(tmp_path)
+        )
+        assert result["success"] is True
+        assert result["num_generated"] > 0
+
+    def test_generate_saves_files(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pathlib import Path
+        path = _make_cu_slab_file(tmp_path)
+        result = StructureService().adsorption(
+            path, mode="generate", molecule_formula="CO",
+            save_dir=str(tmp_path)
+        )
+        for saved in result["saved_files"]:
+            assert Path(saved).exists()
+
+    def test_generate_without_molecule_returns_error(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_cu_slab_file(tmp_path)
+        result = StructureService().adsorption(path, mode="generate",
+                                               save_dir=str(tmp_path))
+        assert "error" in result
+
+
+class TestParticle:
+    def test_wulff_pt_generates_structure(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        result = StructureService().particle(
+            element="Pt",
+            mode="wulff",
+            surface_energies={"111": 0.05, "100": 0.07, "110": 0.09},
+            particle_size=12.0,
+            vacuum=10.0,
+            save_dir=str(tmp_path),
+            filename="POSCAR_Pt_wulff",
+        )
+        assert result["success"] is True
+        assert result["structure"]["reduced_formula"] == "Pt"
+        assert result["structure"]["nsites"] > 0
+
+    def test_sphere_au_generates_structure(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        result = StructureService().particle(
+            element="Au",
+            mode="sphere",
+            particle_size=8.0,
+            vacuum=10.0,
+            save_dir=str(tmp_path),
+            filename="POSCAR_Au_sphere",
+        )
+        assert result["success"] is True
+        assert result["structure"]["reduced_formula"] == "Au"
+
+    def test_saves_file(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pathlib import Path
+        result = StructureService().particle(
+            element="Pt",
+            mode="sphere",
+            particle_size=8.0,
+            vacuum=10.0,
+            save_dir=str(tmp_path),
+            filename="POSCAR_Pt_sphere",
+        )
+        assert result["success"] is True
+        assert Path(result["saved_files"][0]).exists()
+
+    def test_unknown_element_with_lattice_constant(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        result = StructureService().particle(
+            element="La",
+            mode="sphere",
+            lattice_constant=3.75,
+            lattice_type="fcc",
+            particle_size=8.0,
+            save_dir=str(tmp_path),
+        )
+        assert result["success"] is True
