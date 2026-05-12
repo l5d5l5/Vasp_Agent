@@ -92,3 +92,108 @@ class TestSupercell:
         assert abs(result["structure"]["a"] - 3.615 * 2) < 0.01
         assert abs(result["structure"]["b"] - 3.615 * 2) < 0.01
         assert abs(result["structure"]["c"] - 3.615) < 0.01
+
+
+class TestVacancy:
+    def test_single_vacancy_reduces_nsites(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_bcc_fe(tmp_path)
+        result = StructureService().vacancy(path, "Fe", num_vacancies=1,
+                                            num_structs=1, save_dir=str(tmp_path))
+        assert result["success"] is True
+        assert result["num_generated"] >= 1
+        assert result["structures"][0]["nsites"] == 1  # 2 atoms - 1 = 1
+
+    def test_doping_keeps_nsites(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_bcc_fe(tmp_path)
+        result = StructureService().vacancy(path, "Fe", dopant="Ni",
+                                            num_vacancies=1, num_structs=1,
+                                            save_dir=str(tmp_path))
+        assert result["success"] is True
+        assert result["structures"][0]["nsites"] == 2
+
+    def test_saves_files(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pathlib import Path
+        path = _make_bcc_fe(tmp_path)
+        result = StructureService().vacancy(path, "Fe", num_vacancies=1,
+                                            num_structs=1, save_dir=str(tmp_path))
+        for saved in result["saved_files"]:
+            assert Path(saved).exists()
+
+    def test_error_on_wrong_element(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        path = _make_bcc_fe(tmp_path)
+        result = StructureService().vacancy(path, "Au", save_dir=str(tmp_path))
+        assert "error" in result
+
+
+class TestSlab:
+    def test_slab_cell_type_is_slab(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        result = StructureService().slab(
+            str(path), miller_indices="111", target_layers=4,
+            save_dir=str(tmp_path), filename="POSCAR_slab"
+        )
+        assert result["success"] is True
+        assert result["structure"]["cell_type"] == "slab"
+
+    def test_slab_c_is_large(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        result = StructureService().slab(
+            str(path), miller_indices="111", target_layers=4,
+            vacuum_thickness=15.0, save_dir=str(tmp_path)
+        )
+        assert result["structure"]["c"] > 15.0
+
+    def test_slab_saves_file(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from Structure_tool.structure_service import StructureService
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        from pathlib import Path
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        result = StructureService().slab(
+            str(path), miller_indices="111", target_layers=4,
+            save_dir=str(tmp_path), filename="POSCAR_111"
+        )
+        assert result["success"] is True
+        assert Path(result["saved_files"][0]).exists()
+
+    def test_supercell_2x2_expands_slab(self, tmp_path):
+        from Structure_tool.structure_service import StructureService
+        from pymatgen.core import Structure, Lattice
+        from pymatgen.io.vasp import Poscar
+        lat = Lattice.cubic(3.615)
+        struct = Structure(lat, ["Cu"] * 4,
+                           [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+        path = tmp_path / "POSCAR"
+        Poscar(struct).write_file(str(path))
+        result_1x1 = StructureService().slab(
+            str(path), miller_indices="111", target_layers=4,
+            save_dir=str(tmp_path), filename="POSCAR_1x1"
+        )
+        result_2x2 = StructureService().slab(
+            str(path), miller_indices="111", target_layers=4,
+            supercell_matrix="2x2", save_dir=str(tmp_path), filename="POSCAR_2x2"
+        )
+        assert result_2x2["structure"]["nsites"] == result_1x1["structure"]["nsites"] * 4

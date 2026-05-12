@@ -76,3 +76,90 @@ class StructureService:
             }
         except Exception as e:
             return {"error": str(e), "success": False}
+
+    def vacancy(
+        self,
+        file_path: str,
+        element: str,
+        dopant: Optional[str] = None,
+        num_vacancies: int = 1,
+        num_structs: int = 1,
+        top_layers: Optional[int] = None,
+        random_seed: Optional[int] = None,
+        save_dir: str = "./structures",
+        filename_prefix: str = "POSCAR_vac",
+    ) -> Dict[str, Any]:
+        try:
+            from .structure_modify import StructureModify
+            struct = load_structure(file_path)
+            modifier = StructureModify(struct)
+            kwargs: Dict[str, Any] = {}
+            if top_layers is not None:
+                kwargs["top_layers"] = top_layers
+            structures = modifier.generate_defects_batch(
+                substitute_element=element,
+                dopant=dopant,
+                dopant_num=num_vacancies,
+                num_structs=num_structs,
+                random_seed=random_seed,
+                **kwargs,
+            )
+            if not structures:
+                return {"error": f"No candidate sites found for element '{element}'.", "success": False}
+            saved_files: list = []
+            summaries: list = []
+            for i, s in enumerate(structures):
+                fname = f"{filename_prefix}_{i}"
+                saved = _save_poscar(s, save_dir, fname)
+                saved_files.append(saved)
+                summaries.append(_structure_summary(s))
+            return {
+                "num_generated": len(structures),
+                "structures": summaries,
+                "saved_files": saved_files,
+                "success": True,
+            }
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    def slab(
+        self,
+        file_path: str,
+        miller_indices: str,
+        target_layers: int,
+        vacuum_thickness: float = 15.0,
+        supercell_matrix: Optional[str] = None,
+        fix_bottom_layers: int = 0,
+        fix_top_layers: int = 0,
+        termination_index: int = 0,
+        save_dir: str = "./structures",
+        filename: str = "POSCAR",
+    ) -> Dict[str, Any]:
+        try:
+            from .bulk_to_slab import BulkToSlabGenerator
+            gen = BulkToSlabGenerator(file_path, save_dir=save_dir)
+            gen.generate(
+                miller_indices=miller_indices,
+                target_layers=target_layers,
+                vacuum_thickness=vacuum_thickness,
+                supercell_matrix=supercell_matrix,
+                fix_bottom_layers=fix_bottom_layers,
+                fix_top_layers=fix_top_layers,
+            )
+            slabs = gen.get_slabs()
+            if not slabs:
+                return {"error": "No slabs generated. Try adjusting miller_indices or target_layers.", "success": False}
+            idx = min(termination_index, len(slabs) - 1)
+            selected = slabs[idx]
+            saved = _save_poscar(selected, save_dir, filename)
+            return {
+                "structure": _structure_summary(selected),
+                "miller_indices": miller_indices,
+                "target_layers": target_layers,
+                "termination_index": idx,
+                "num_terminations": len(slabs),
+                "saved_files": [saved],
+                "success": True,
+            }
+        except Exception as e:
+            return {"error": str(e), "success": False}
