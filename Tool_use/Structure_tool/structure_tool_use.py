@@ -28,13 +28,17 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / "Search_tool" / ".env")
 load_dotenv()  # also check local .env
 
-from .structure_tool_executor import StructureToolExecutor
+try:
+    from .structure_tool_executor import StructureToolExecutor
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from Structure_tool.structure_tool_executor import StructureToolExecutor
 
 
 LLM_CONFIGS: Dict[str, Dict] = {
     "deepseek": {
         "base_url": "https://api.deepseek.com",
-        "model":    "deepseek-chat",
+        "model":    "deepseek-v4-flash",
         "extra":    {"parallel_tool_calls": False},
     },
     "qwen": {
@@ -69,6 +73,10 @@ def message_to_dict(msg: Any) -> Dict:
         "role":    msg.role,
         "content": msg.content if msg.content is not None else "",
     }
+    # DeepSeek thinking mode: reasoning_content must be echoed back to the API
+    reasoning = getattr(msg, "reasoning_content", None)
+    if reasoning:
+        d["reasoning_content"] = reasoning
     if msg.tool_calls:
         d["tool_calls"] = [
             {
@@ -164,4 +172,6 @@ async def main():
 if __name__ == "__main__":
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     asyncio.run(main())
