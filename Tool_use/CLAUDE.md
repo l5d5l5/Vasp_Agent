@@ -154,3 +154,44 @@ python -m Structure_tool.structure_tool_use
 ```
 
 LLM provider and API key: set `LLM_API_KEY` in `Search_tool/.env` (auto-loaded). Change `llm_provider=` in `main()` to switch between `deepseek`/`qwen`/`glm`/`openai`.
+
+## Analysis_tool Package
+
+A VASP post-processing toolkit with LLM tool-calling interface. Independent of Search_tool and Structure_tool — no MP API key required. Import directly:
+
+```python
+from Analysis_tool import VaspAnalysisDispatcher
+```
+
+### Classes
+
+| Class | File | Purpose |
+|---|---|---|
+| `DosAnalysis` | `Analysis.py` | Projected DOS + d-band descriptors from DOSCAR |
+| `RelaxAnalysis` | `Analysis.py` | Relaxation convergence from OUTCAR/OSZICAR (single-pass fast parser) |
+| `StructureAnalysis` | `Analysis.py` | Structure summary from POSCAR/CONTCAR |
+| `CohpAnalysis` | `Analysis.py` | Chemical bonding (COHP/ICOHP) from LOBSTER output |
+| `VaspAnalysisDispatcher` | `Analysis.py` | Registry-based dispatcher; single entry point for all analyzers |
+
+`parse.py` provides fast numpy-based parsers: `FastCohpcar` (10-20× faster than pymatgen) and `DoscarParser` (lazy evaluation, gzip support).
+
+### Analysis Tool_use (LLM Agent)
+
+Six tools exposed as OpenAI function-calling tools. All accept `work_dir` (path to VASP calculation directory). Raw numeric arrays are stripped before returning to LLM.
+
+| Tool | Operation | Key args |
+|---|---|---|
+| `vasp_dos` | DOS + d-band descriptors | `work_dir`, `elements`, `orbitals`, `erange` |
+| `vasp_relax` | Relaxation convergence | `work_dir`, `get_site_mag` |
+| `vasp_structure_info` | Structure summary | `work_dir` |
+| `vasp_cohp_summary` | ICOHP bond table (top N) | `work_dir`, `n_top_bonds`, `filter_type`, `filter_value` |
+| `vasp_cohp_curves` | COHP curve summary | `work_dir`, `bond_labels`, `erange`, `include_orbitals` |
+| `vasp_cohp_export` | Export COHP to CSV/JSON | `work_dir`, `bond_labels`, `export_format`, `save_dir` |
+
+Run from `Tool_use/`:
+
+```powershell
+python -m Analysis_tool.analysis_tool_use
+```
+
+LLM provider and API key: set `LLM_API_KEY` in `Search_tool/.env`. Change `llm_provider=` in `main()` to switch between `deepseek`/`qwen`/`glm`/`openai`.
