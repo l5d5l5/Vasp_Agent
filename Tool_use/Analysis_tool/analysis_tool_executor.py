@@ -144,6 +144,8 @@ class AnalysisToolExecutor:
             }
 
         # ── DOS: DOSCAR > 1 KB ───────────────────────────────────
+        # DOS calculations always produce OUTCAR/OSZICAR (electronic steps only),
+        # so DOSCAR presence takes priority — we do NOT also label them as relax.
         doscar = work_dir / "DOSCAR"
         if doscar.exists() and doscar.stat().st_size > 1024:
             detected.append("dos")
@@ -151,10 +153,19 @@ class AnalysisToolExecutor:
                 "doscar_size_MB": round(doscar.stat().st_size / 1e6, 2),
             }
 
-        # ── RELAX: OUTCAR present (catch-all) ────────────────────
+        # ── RELAX: OUTCAR present, no special flag, and NOT a DOS/NEB/DIMER calc ──
+        # NSW=0 means single-point (DOS/NSCF), so skip relax in that case.
         outcar  = work_dir / "OUTCAR"
         oszicar = work_dir / "OSZICAR"
-        if outcar.exists() and "neb" not in detected and "dimer" not in detected:
+        nsw = incar_tags.get("NSW", "").strip()
+        is_single_point = nsw == "0"
+        if (
+            outcar.exists()
+            and "neb"   not in detected
+            and "dimer" not in detected
+            and "dos"   not in detected   # DOS calc already captured above
+            and not is_single_point       # NSW=0 → single-point, not relax
+        ):
             detected.append("relax")
             details["relax"] = {
                 "outcar_size_MB": round(outcar.stat().st_size / 1e6, 2),

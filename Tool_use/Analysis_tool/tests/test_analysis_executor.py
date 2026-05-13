@@ -45,9 +45,10 @@ async def test_vasp_detect_dos_dir(executor):
     data = json.loads(result)
     assert data.get("success") is True
     detected = data["data"]["detected"]
-    # dos/ has DOSCAR and OUTCAR — expect both dos and relax
+    # dos/ has DOSCAR — should be labelled dos only, NOT relax
+    # (DOS calcs produce OUTCAR/OSZICAR too, but that doesn't make them relax)
     assert "dos" in detected
-    assert "relax" in detected
+    assert "relax" not in detected
     # NEB and DIMER should NOT appear
     assert "neb" not in detected
     assert "dimer" not in detected
