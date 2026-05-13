@@ -1,0 +1,49 @@
+============================================================
+>>> Analyse the VASP calculation in D:\workflow\catalysis_tools_mod\Tool_use\Analysis_tool\Test\dos: first show me the structure info, then calculate the d-band center of surface Pd atom and p-band center of surface C atom.
+============================================================
+---
+
+## 📊 VASP DOS Analysis Summary
+
+### 🧱 Structure Info
+
+| Property | Value |
+|---|---|
+| **Formula** | Pd₄₀C₃ |
+| **Elements** | Pd, C |
+| **Lattice** | a = 11.27 Å, b = 11.27 Å, c = 17.04 Å, α = 90°, β = 90°, γ = 120° |
+| **Cell Volume** | 1874.0 Å³ |
+
+The cell is **hexagonal** (γ = 120°), consistent with a Pd surface slab with three C adsorbates on top.
+
+---
+
+### 🧲 Band Centre Descriptors (spin-polarised, ISPIN = 2)
+
+#### Pd‑d band centre
+
+| Statistic | Spin-up | Spin-down | Average |
+|---|---|---|---|
+| **d-band centre (ε_d)** | −1.798 eV | −1.797 eV | **−1.80 eV** |
+| Width | 1.73 eV | 1.74 eV | — |
+| Filling | 90.5 % | 91.1 % | — |
+| Magnetic moment | — | — | **0.73 μ_B** |
+
+#### C‑p band centre
+
+| Statistic | Spin-up | Spin-down | Average |
+|---|---|---|---|
+| **p-band centre (ε_p)** | −1.761 eV | −1.745 eV | **−1.75 eV** |
+| Width | 4.23 eV | 4.23 eV | — |
+| Filling | 53.9 % | 53.7 % | — |
+| Magnetic moment | — | — | ~0 μ_B (negligible) |
+
+---
+
+### 🔑 Key Takeaways
+
+1. **Pd d-band centre** sits at **−1.80 eV** below the Fermi level — typical for Pd, which has a nearly full d-band (~91 % filled). The small magnetic moment (0.73 μ_B) is characteristic of Pd at surfaces where the reduced coordination narrows the d-band and introduces slight spin-splitting.
+
+2. **C p-band centre** at **−1.75 eV** reflects the C 2p states hybridised with Pd. The much broader distribution (4.23 eV width vs. 1.73 eV for Pd d) and ~54 % filling is consistent with covalent C–Pd bonding.
+
+3. The proximity of the C p-band centre to the Pd d-band centre (−1.75 vs −1.80 eV) indicates strong **Pd–C orbital overlap**, which is expected for carbidic or adsorbed carbon species on Pd surfaces.

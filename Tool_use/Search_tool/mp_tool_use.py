@@ -20,13 +20,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ──────────────────────────────────────────────
-# Schema 语言切换
+# Schema 语言 & 数据库后端切换
 # ──────────────────────────────────────────────
-_SCHEMA_LANG = os.environ.get("MP_SCHEMA_LANG", "en")
-if _SCHEMA_LANG == "cn":
-    from mp_tool_schema_cn import MP_TOOL_SCHEMA_CN as MP_TOOL_SCHEMA
-else:
-    from mp_tool_schema_en import MP_TOOL_SCHEMA_EN as MP_TOOL_SCHEMA
+from mp_tool_schemas import (
+    get_tool_schema,
+    FormulaArgs, ElementsArgs, CriteriaArgs, FetchArgs, DownloadArgs,
+)
+from oqmd_tool_schemas import (
+    get_oqmd_tool_schema,
+    OQMDSearchFormulaArgs, OQMDSearchElementsArgs,
+    OQMDSearchCriteriaArgs, OQMDFetchArgs, OQMDDownloadArgs,
+)
+
+_SCHEMA_LANG     = os.environ.get("MP_SCHEMA_LANG", "en")
+MP_TOOL_SCHEMA   = get_tool_schema(_SCHEMA_LANG)
+OQMD_TOOL_SCHEMA = get_oqmd_tool_schema(_SCHEMA_LANG)
 
 
 # ══════════════════════════════════════════════
@@ -119,6 +127,13 @@ class MPToolExecutor(ABC):
     def tools(self) -> List[Dict]:
         return MP_TOOL_SCHEMA
 
+    @property
+    def system_hint(self) -> str:
+        return (
+            "the Materials Project database (mp_* tools). "
+            "Cite the material_id (e.g. mp-19770) in your answer."
+        )
+
 
 # ══════════════════════════════════════════════
 # 本地执行器
@@ -146,18 +161,23 @@ class LocalToolExecutor(MPToolExecutor):
     async def execute(self, tool_name: str, tool_args: Dict) -> str:
         return await asyncio.to_thread(self._sync, tool_name, tool_args)
 
-    # ── 工具分发 ──────────────────────────────
-    async def execute(self, tool_name: str, tool_args: Dict) -> str:
-        return await asyncio.to_thread(self._sync, tool_name, tool_args)
+    # ── 工具分发表：工具名 → (参数模型, 处理方法名) ────────────
+    _TOOL_DISPATCH = {
+        "mp_search_formula":  (FormulaArgs,  "_search_formula"),
+        "mp_search_elements": (ElementsArgs, "_search_elements"),
+        "mp_search_criteria": (CriteriaArgs, "_search_criteria"),
+        "mp_fetch":           (FetchArgs,    "_fetch"),
+        "mp_download":        (DownloadArgs, "_download"),
+    }
 
     def _sync(self, tool_name: str, tool_args: Dict) -> str:
         try:
-            if   tool_name == "mp_search_formula":   payload = self._search_formula(tool_args)
-            elif tool_name == "mp_search_elements":  payload = self._search_elements(tool_args)
-            elif tool_name == "mp_search_criteria":  payload = self._search_criteria(tool_args)
-            elif tool_name == "mp_fetch":            payload = self._fetch(tool_args)
-            elif tool_name == "mp_download":         payload = self._download(tool_args)
-            else:                                    payload = {"error": f"unknown tool: {tool_name}"}
+            if tool_name not in self._TOOL_DISPATCH:
+                return json.dumps({"error": f"unknown tool: {tool_name}"})
+            model_cls, method_name = self._TOOL_DISPATCH[tool_name]
+            validated  = model_cls.model_validate(tool_args)   # Pydantic 验证 + 类型强转
+            clean_args = validated.model_dump()                 # 转回 dict 供 handler 使用
+            payload    = getattr(self, method_name)(clean_args)
         except Exception as e:
             payload = {"error": str(e)}
         return json.dumps(payload, cls=MontyEncoder, ensure_ascii=False, indent=2)
@@ -327,42 +347,13 @@ class LocalToolExecutor(MPToolExecutor):
 #   3. mp_download 始终降级到本地执行（MCP 无此工具）
 # ══════════════════════════════════════════════
 
-class MCPToolExecutor(MPToolExecutor):
+def _build_download_tool_schema(lang: str = "en") -> Dict:
+    """从 DownloadArgs 模型生成 mp_download 的 OpenAI schema（与其他工具同源）。"""
+    specs = get_tool_schema(lang)
+    return next(s for s in specs if s["function"]["name"] == "mp_download")
 
-    _DOWNLOAD_TOOL = {
-        "type": "function",
-        "function": {
-            "name": "mp_download",
-            "description": (
-                "Download a crystal structure file from the Materials Project. "
-                "Supports CIF, POSCAR, and XYZ formats. "
-                "Use this after finding a material_id with search or fetch."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "material_id": {
-                        "type": "string",
-                        "description": "Materials Project ID, e.g. 'mp-19770'",
-                    },
-                    "fmt": {
-                        "type": "string",
-                        "enum": ["cif", "poscar", "xyz"],
-                        "description": "File format. Default: cif",
-                    },
-                    "save_dir": {
-                        "type": "string",
-                        "description": "Directory to save the file. Default: ./structures",
-                    },
-                    "filename": {
-                        "type": "string",
-                        "description": "Custom filename without extension. Optional.",
-                    },
-                },
-                "required": ["material_id"],
-            },
-        },
-    }
+
+class MCPToolExecutor(MPToolExecutor):
 
     def __init__(self, mp_api_key: str):
         self.mp_api_key          = mp_api_key
@@ -376,7 +367,7 @@ class MCPToolExecutor(MPToolExecutor):
     def tools(self) -> List[Dict]:
         """MCP 在线 → MCP 原生 Schema；离线 → 本地 5 工具 Schema。"""
         if self._mcp_tools_schema and not self._use_fallback:
-            return self._mcp_tools_schema + [self._DOWNLOAD_TOOL]
+            return self._mcp_tools_schema + [_build_download_tool_schema(_SCHEMA_LANG)]
         return MP_TOOL_SCHEMA
 
     async def start(self) -> bool:
@@ -501,6 +492,182 @@ class MCPToolExecutor(MPToolExecutor):
             print("[MCP] 连接已关闭")
 
 # ══════════════════════════════════════════════
+# OQMD 本地执行器
+# OQMD 无官方 MCP Server，始终走 REST API 本地执行
+# ══════════════════════════════════════════════
+
+class OQMDLocalToolExecutor(MPToolExecutor):
+    """OQMD 本地执行器：通过 OQMDQueryService 直连 OQMD REST API。"""
+
+    _TOOL_DISPATCH = {
+        "oqmd_search_formula":  (OQMDSearchFormulaArgs,  "_search_formula"),
+        "oqmd_search_elements": (OQMDSearchElementsArgs, "_search_elements"),
+        "oqmd_search_criteria": (OQMDSearchCriteriaArgs, "_search_criteria"),
+        "oqmd_fetch":           (OQMDFetchArgs,          "_fetch"),
+        "oqmd_download":        (OQMDDownloadArgs,       "_download"),
+    }
+
+    @property
+    def tools(self) -> List[Dict]:
+        return OQMD_TOOL_SCHEMA
+
+    @property
+    def system_hint(self) -> str:
+        return (
+            "the OQMD (Open Quantum Materials Database) (oqmd_* tools). "
+            "Cite the entry_id (integer) in your answer."
+        )
+
+    def __init__(self):
+        from oqmd_search import OQMDQueryService
+        self._svc = OQMDQueryService(max_results=20, include_angles=True)
+
+    async def execute(self, tool_name: str, tool_args: Dict) -> str:
+        return await asyncio.to_thread(self._sync, tool_name, tool_args)
+
+    def _sync(self, tool_name: str, tool_args: Dict) -> str:
+        try:
+            if tool_name not in self._TOOL_DISPATCH:
+                return json.dumps({"error": f"unknown tool: {tool_name}"})
+            model_cls, method_name = self._TOOL_DISPATCH[tool_name]
+            validated  = model_cls.model_validate(tool_args)
+            clean_args = validated.model_dump()
+            payload    = getattr(self, method_name)(clean_args)
+        except Exception as e:
+            payload = {"error": str(e)}
+        return json.dumps(payload, cls=MontyEncoder, ensure_ascii=False, indent=2)
+
+    # ── 字段过滤 ──────────────────────────────
+    _SEARCH_FIELDS = (
+        "entry_id", "formula", "space_group", "crystal_system",
+        "a", "b", "c", "nsites", "ntypes", "volume",
+        "band_gap", "formation_energy_per_atom", "stability", "is_stable",
+        "prototype",
+    )
+    _FETCH_FIELDS = _SEARCH_FIELDS + ("alpha", "beta", "gamma")
+    _EXCLUDE      = {"_structure", "xyz", "cif", "poscar"}
+
+    @classmethod
+    def _summary(cls, r: Dict) -> Dict:
+        return {k: r[k] for k in cls._SEARCH_FIELDS if k in r}
+
+    @classmethod
+    def _full_summary(cls, r: Dict) -> Dict:
+        return {k: r[k] for k in cls._FETCH_FIELDS if k in r}
+
+    # ── Tool 1: oqmd_search_formula ──────────
+    def _search_formula(self, args: Dict) -> Dict:
+        results = self._svc.query_by_formula(
+            composition = args["composition"],
+            only_stable = args.get("only_stable", False),
+        )
+        n = args.get("max_results", 5)
+        return {"count": len(results), "results": [self._summary(r) for r in results[:n]]}
+
+    # ── Tool 2: oqmd_search_elements ─────────
+    def _search_elements(self, args: Dict) -> Dict:
+        results = self._svc.query_by_elements(
+            elements     = args["elements"],
+            num_elements = args.get("num_elements"),
+            only_stable  = args.get("only_stable", False),
+        )
+        n = args.get("max_results", 5)
+        return {"count": len(results), "results": [self._summary(r) for r in results[:n]]}
+
+    # ── Tool 3: oqmd_search_criteria ─────────
+    def _search_criteria(self, args: Dict) -> Dict:
+        n = args.pop("max_results", 5)
+        criteria = {k: v for k, v in args.items() if v is not None}
+        if not criteria:
+            return {"error": "oqmd_search_criteria requires at least one filter parameter."}
+        results = self._svc.query_by_criteria(**criteria)
+        return {"count": len(results), "results": [self._summary(r) for r in results[:n]]}
+
+    # ── Tool 4: oqmd_fetch ────────────────────
+    def _fetch(self, args: Dict) -> Dict:
+        ids     = args["entry_ids"]
+        results = self._svc.query_by_entry_id(ids)
+        if not results:
+            return {"error": f"not found: {ids}"}
+        return {"count": len(results), "results": [self._full_summary(r) for r in results]}
+
+    # ── Tool 5: oqmd_download ─────────────────
+    def _download(self, args: Dict) -> Dict:
+        from search import save_structure_to_disk
+        eid  = args["entry_id"]
+        fmt  = args.get("fmt", "cif")
+        results = self._svc.query_by_entry_id(eid)
+        if not results:
+            return {"error": f"not found: oqmd-{eid}"}
+        item     = results[0]
+        struct   = item.get("_structure")
+        if struct is None:
+            return {"error": f"no structure data for oqmd-{eid}"}
+        filename = (
+            args.get("filename")
+            or f"oqmd-{item['entry_id']}_{item['formula']}"
+        )
+        saved = save_structure_to_disk(
+            struct   = struct,
+            save_dir = args.get("save_dir", "./structures"),
+            filename = filename,
+            fmt      = fmt,
+        )
+        return {
+            "entry_id":   eid,
+            "formula":    item["formula"],
+            "fmt":        fmt,
+            "saved_files": saved,
+            "success":    bool(saved),
+        }
+
+    async def close(self): pass
+
+
+# ══════════════════════════════════════════════
+# 组合执行器（默认模式）
+# 同时加载 MP 和 OQMD 工具，LLM 根据用户 prompt
+# 自动路由：oqmd_* → OQMDLocalToolExecutor
+#           mp_* / MCP 原生工具 → mp_executor
+# ══════════════════════════════════════════════
+
+class CombinedToolExecutor(MPToolExecutor):
+    """
+    聚合 MP + OQMD 两个后端，暴露全部工具给 LLM。
+    LLM 根据用户意图（"search OQMD..." / "Materials Project..."）
+    自动选择调用 oqmd_* 或 mp_* 工具，无需预先指定后端。
+    """
+
+    def __init__(self, mp_executor: MPToolExecutor):
+        self._mp   = mp_executor
+        self._oqmd = OQMDLocalToolExecutor()
+
+    @property
+    def tools(self) -> List[Dict]:
+        return self._mp.tools + self._oqmd.tools
+
+    @property
+    def system_hint(self) -> str:
+        return (
+            "both Materials Project (mp_* tools, cite material_id e.g. mp-19770) "
+            "and OQMD (oqmd_* tools, cite entry_id integer). "
+            "Choose the database based on what the user requests: "
+            "use mp_* tools for Materials Project queries, "
+            "oqmd_* tools for OQMD queries. "
+            "If the user does not specify a database, prefer Materials Project."
+        )
+
+    async def execute(self, tool_name: str, tool_args: Dict) -> str:
+        if tool_name.startswith("oqmd_"):
+            return await self._oqmd.execute(tool_name, tool_args)
+        return await self._mp.execute(tool_name, tool_args)
+
+    async def close(self):
+        await self._mp.close()
+        await self._oqmd.close()
+
+
+# ══════════════════════════════════════════════
 # 统一对话循环
 # ══════════════════════════════════════════════
 
@@ -515,10 +682,9 @@ async def run(
     extra    = client._mp_extra
     messages = [
         {"role": "system", "content": (
-            "You are a materials science assistant with access to the Materials Project database. "
+            f"You are a materials science assistant with access to {executor.system_hint} "
             "Use the provided tools to answer questions about crystal structures, "
-            "electronic properties, stability, and magnetic properties. "
-            "Always cite the material_id in your answer."
+            "electronic properties, stability, and magnetic properties."
         )},
         {"role": "user", "content": user_message},
     ]
@@ -558,41 +724,71 @@ async def run(
 # ══════════════════════════════════════════════
 
 async def main():
-    MP_KEY  = os.environ.get("MP_API_KEY")
     LLM_KEY = os.environ.get("LLM_API_KEY")
+    MP_KEY  = os.environ.get("MP_API_KEY")
+    # DB_BACKEND: "combined"（默认）| "mp" | "oqmd"
+    #   combined → LLM 根据用户 prompt 自动选择 mp_* 或 oqmd_* 工具
+    #   mp       → 仅 MP 工具（MP_EXECUTOR_MODE 决定 local / mcp_llm）
+    #   oqmd     → 仅 OQMD 工具（无需 API Key）
+    _DB   = os.environ.get("DB_BACKEND", "combined")
+    _MODE = os.environ.get("MP_EXECUTOR_MODE", "local")
 
-    if not MP_KEY:
-        raise ValueError("❌ MP_API_KEY 未设置，请检查 .env 文件")
     if not LLM_KEY:
         raise ValueError("❌ LLM_API_KEY 未设置，请检查 .env 文件")
-    
-    # ── 执行模式选择 ──────────────────────────
-    # MP_EXECUTOR_MODE=local    → LocalToolExecutor（默认，精确控制）
-    # MP_EXECUTOR_MODE=mcp_llm  → MCPToolExecutor（MCP 优先，失败自动降级）
-    MODE = os.environ.get("MP_EXECUTOR_MODE", "local")
-    
-    QUESTIONS = [
-        "Find the most stable Fe2O3 structure and download its CIF file.",
-        "Get detailed properties of mp-126 and save it as POSCAR.",
-        "Find magnetic insulators containing Fe and O with band gap between 1 and 3 eV.",
-        # "我想要获得特殊的金红石型的VO2结构信息并下载为POSCAR文件。",
-        # "我想要知道稳定的FeVO4的band_gap是多少，如果它是导体请下载为POSCAR文件，如果不是请告诉我它的band_gap是多少。",
-    ]
 
-    if MODE == "local":
-        print("🔧 后端：LocalToolExecutor")
-        executor = LocalToolExecutor(mp_api_key=MP_KEY)
+    # ── 构建 MP 执行器（combined / mp 模式需要） ──────────────────
+    def _build_mp_executor() -> MPToolExecutor:
+        if not MP_KEY:
+            raise ValueError("❌ MP_API_KEY 未设置，请检查 .env 文件")
+        if _MODE == "local":
+            print("🔧 MP 后端：LocalToolExecutor")
+            return LocalToolExecutor(mp_api_key=MP_KEY)
+        elif _MODE == "mcp_llm":
+            return MCPToolExecutor(mp_api_key=MP_KEY)
+        else:
+            raise ValueError(f"未知模式：{_MODE}，可选：local / mcp_llm")
 
-    elif MODE == "mcp_llm":
-        executor = MCPToolExecutor(mp_api_key=MP_KEY)
-        print("\n[启动] MCP Server（失败时自动降级到 Local）...")
-        await executor.start()
-        backend = "LocalToolExecutor（降级）" if executor._use_fallback else "MCP Server"
-        print(f"[就绪] 当前后端: {backend}")
-        print(f"[工具] {[t['function']['name'] for t in executor.tools]}")
+    # ── 执行器选择 ────────────────────────────────────────────────
+    if _DB == "oqmd":
+        print("🔧 数据库：OQMD（无需 API Key）")
+        executor = OQMDLocalToolExecutor()
+
+    elif _DB == "mp":
+        executor = _build_mp_executor()
+        if _MODE == "mcp_llm":
+            print("\n[启动] MCP Server（失败时自动降级到 Local）...")
+            await executor.start()
+            backend = "LocalToolExecutor（降级）" if executor._use_fallback else "MCP Server"
+            print(f"[就绪] 当前后端: {backend}")
+            print(f"[工具] {[t['function']['name'] for t in executor.tools]}")
+
+    elif _DB == "combined":
+        if MP_KEY:
+            mp_exec = _build_mp_executor()
+            if _MODE == "mcp_llm":
+                print("\n[启动] MCP Server（失败时自动降级到 Local）...")
+                await mp_exec.start()
+                backend = "LocalToolExecutor（降级）" if mp_exec._use_fallback else "MCP Server"
+                print(f"[就绪] MP 后端: {backend}")
+            executor = CombinedToolExecutor(mp_exec)
+            print("🔧 数据库：MP + OQMD（组合模式，LLM 根据用户意图自动路由）")
+        else:
+            print("⚠️  MP_API_KEY 未设置，组合模式降级为 OQMD 单独模式")
+            executor = OQMDLocalToolExecutor()
 
     else:
-        raise ValueError(f"未知模式：{MODE}，可选：local / mcp_llm")
+        raise ValueError(f"未知数据库后端：{_DB}，可选：combined / mp / oqmd")
+
+    print(f"[工具列表] {[t['function']['name'] for t in executor.tools]}")
+
+    # ── 查询列表（在 prompt 中体现数据库意图，让 LLM 路由） ─────────
+    QUESTIONS = [
+        "Find the most stable Fe2O3 structure in Materials Project and download its CIF file. use OQMD database",
+        "Search OQMD for binary compounds containing Fe and O with band gap between 1 and 3 eV.",
+        "Find magnetic insulators containing Fe and O with band gap between 1 and 3 eV.",
+        # "在OQMD中查找稳定的Al2O3结构并下载为CIF文件。",
+        # "Get detailed properties of mp-126 and save it as POSCAR.",
+    ]
 
     try:
         for q in QUESTIONS:

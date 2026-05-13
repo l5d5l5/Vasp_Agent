@@ -8,13 +8,16 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
+*.CLAUDE.md
 # Jupyter Notebook
 .ipynb_checkpoints/
 
 # 虚拟环境
 venv/
 env/
+*.test*/
+*.Test/
+*.MLIP/
 .conda/
 
 # 系统文件
@@ -24,3 +27,12 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+mp_api/
+# Large model files
+/Tool_use/Structure_tool/MLIP/
+
+# Test calculation outputs
+/Tool_use/Analysis_tool/Test/
+
+# Embedded external repository
+/mp_api/

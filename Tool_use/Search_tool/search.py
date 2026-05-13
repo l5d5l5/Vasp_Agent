@@ -136,7 +136,7 @@ def structure_to_poscar(struct: Structure, comment: str = "") -> str:
 # 格式扩展名映射
 _FMT_EXT: Dict[str, str] = {
     "cif":    ".cif",
-    "poscar": "",          # POSCAR 无扩展名（VASP 惯例）
+    "poscar": "",         
     "xyz":    ".xyz",
 }
 
@@ -171,7 +171,7 @@ def save_structure_to_disk(
         logger.error("不支持的格式：%s（支持：%s）", fmt, list(_FMT_EXT))
         return []
 
-    # ── 准备目录 ──────────────────────────────
+    # 目录
     save_path = Path(save_dir)
     try:
         save_path.mkdir(parents=True, exist_ok=True)
@@ -184,7 +184,6 @@ def save_structure_to_disk(
 
     if fmt == "cif":
         content = structure_to_cif(struct)
-        # CifWriter 失败时返回空字符串
         if not content:
             logger.error("CIF 内容为空，跳过保存")
             return []
@@ -201,7 +200,7 @@ def save_structure_to_disk(
             logger.error("XYZ 内容为空，跳过保存")
             return []
 
-    # ── 构造文件路径 ───────────────────────────
+    # 文件路径
     ext      = _FMT_EXT[fmt]
     # POSCAR 惯例：文件名直接为 "POSCAR"（或带前缀）
     basename = f"{filename}{ext}" if fmt != "poscar" else f"POSCAR_{filename}"
@@ -210,15 +209,12 @@ def save_structure_to_disk(
     # ── 写入文件 ───────────────────────────────
     try:
         filepath.write_text(content, encoding="utf-8")
-        logger.info("✅ 已保存：%s", filepath.resolve())
+        logger.info(" 已保存：%s", filepath.resolve())
         return [str(filepath.resolve())]
     except OSError as e:
         logger.error("写入失败 %s：%s", filepath, e)
         return []
 
-# ──────────────────────────────────────────────
-# 单条结果构建（扩展字段）
-# ──────────────────────────────────────────────
 def _safe_round(x, n=4):
     return round(x, n) if isinstance(x, (int, float)) else None
 
@@ -231,7 +227,7 @@ def _build_result(doc: Any, include_angles: bool = False) -> Optional[Dict[str, 
             return None
 
         conv    = get_conventional(struct)
-        lat     = conv.lattice
+        lat     = conv.lattice  
         mid     = str(doc.material_id)
         formula = doc.formula_pretty or conv.composition.reduced_formula
         comment = f"{formula} | {mid}"

@@ -37,7 +37,7 @@ except ImportError:
 LLM_CONFIGS: Dict[str, Dict] = {
     "deepseek": {
         "base_url": "https://api.deepseek.com",
-        "model":    "deepseek-chat",
+        "model":    "deepseek-v4-pro",
         "extra":    {"parallel_tool_calls": False},
     },
     "qwen": {
@@ -164,7 +164,7 @@ async def main():
 
     QUESTIONS = [
         f"Analyse the VASP calculation in {DOS_DIR}: "
-        "first show me the structure info, then calculate the d-band center of Pd.",
+        "first show me the structure info, then calculate the d-band center of surface Pd atom and p-band center of surface C atom.",
     ]
 
     try:

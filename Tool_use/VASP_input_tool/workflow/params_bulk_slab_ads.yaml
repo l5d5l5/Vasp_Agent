@@ -1,0 +1,315 @@
+# ============================================================
+# params_bulk_slab_ads.yaml
+# 完整流水线模板：体相弛豫 → 切割板层 → 吸附计算 → 频率分析
+#
+# 使用说明：
+#   1. 修改 project / pbs / python_runtime 中的路径
+#   2. 在 workflow.stages 中将需要运行的阶段设为 true
+#   3. 每个启用的阶段在下方都有对应的配置节，按需修改
+# ============================================================
+
+# ── 项目路径 ─────────────────────────────────────────────────
+project:
+  project_root: /home/user/projects/my_project   # 项目根目录（hook.py 所在位置的上级）
+  run_root:     /home/user/projects/my_project/runs  # VASP 计算目录写出位置
+
+# ── PBS 队列资源 ──────────────────────────────────────────────
+pbs:
+  queue:          normal        # 队列名
+  ppn:            72            # 核数/节点
+  walltime:       "124:00:00"   # 壁钟时间（体相弛豫建议 ≥ 72h）
+  job_name_prefix: bsa          # qsub 作业名前缀（≤ 10 字符）
+  template_file:  ./pbs_hook.sh.tpl
+
+# ── Python / Conda 环境 ───────────────────────────────────────
+python_runtime:
+  conda_sh:   "/opt/conda/etc/profile.d/conda.sh"
+  conda_env:  "workflow"
+  python_bin: "/opt/conda/envs/workflow/bin/python"
+
+# ── 体相结构文件目录（POSCAR_<id> 或 CONTCAR_<id> 命名）──────
+structure: /home/user/projects/my_project/structure
+
+# ============================================================
+# 阶段开关：将需要运行的阶段设为 true
+# 注意依赖顺序：
+#   bulk_dos / bulk_lobster / bulk_nbo  →  需要 bulk_relax 完成
+#   slab_relax                          →  需要 bulk_relax 完成（自动切割）
+#   slab_dos / slab_lobster / slab_nbo  →  需要 slab_relax 完成
+#   adsorption                          →  需要 slab_relax 完成
+#   adsorption_freq / adsorption_lobster / adsorption_nbo → 需要 adsorption 完成
+# ============================================================
+workflow:
+  stages:
+    bulk_relax:         true
+    bulk_dos:           true
+    bulk_lobster:       false   # 需要同时将下方 lobster.enabled 设为 true
+    bulk_nbo:           false   # 需要同时将下方 nbo.enabled 设为 true
+    slab_relax:         true
+    slab_dos:           false   # 开启后需配置下方 slab_dos 节
+    slab_lobster:       false   # 开启后需将 lobster.enabled 设为 true
+    slab_nbo:           false
+    adsorption:         true
+    adsorption_freq:    true
+    adsorption_lobster: false
+    adsorption_nbo:     false
+
+# ============================================================
+# 各阶段 VASP 参数配置
+# functional 可选值：PBE / SCAN / BEEF / HSE / PBE0
+#   - BEEF 自动使用 beef 版 VASP 可执行文件
+#   - 其余泛函使用 org 版可执行文件
+# ============================================================
+
+# ── 1. 体相弛豫（ISIF=3，离子+晶胞同时优化）─────────────────
+bulk:
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      NPAR: 4
+      ISIF: 3
+      # 磁矩示例（按元素字典）：
+      # MAGMOM:
+      #   Fe: 5.0
+      #   Co: 3.0
+      #   Ni: 2.0
+      # DFT+U 示例：
+      # LDAUU:
+      #   Fe: 4.0
+      # LDAUL:
+      #   Fe: 2
+      # LDAUJ:
+      #   Fe: 0.0
+
+# ── 2. 体相 DOS（非自洽，继承 bulk_relax 的 CHGCAR）──────────
+bulk_dos:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 50
+    number_of_dos:   2001      # NEDOS 网格点数
+    user_incar_settings:
+      LORBIT:  11
+      ISMEAR:  -5
+      ENCUT:   520
+
+# ── 3. 板层切割参数 + 板层弛豫 ───────────────────────────────
+slab:
+  miller_list:               # 需要切割的 Miller 指数列表
+    - [1, 1, 0]
+    # - [1, 0, 0]
+    # - [1, 1, 1]
+
+  slabgen:
+    target_layers:     5     # 目标原子层数
+    vacuum_thickness:  15.0  # 真空层厚度（Å）
+    fix_bottom_layers: 2     # 底部固定层数（选择性动力学）
+    fix_top_layers:    0
+    all_fix:           false
+    symmetric:         false
+    center:            true
+    primitive:         true
+    lll_reduce:        true
+    hcluster_cutoff:   0.25
+    standardize_bulk:  true
+    # supercell_matrix: [[2,0,0],[0,2,0],[0,0,1]]
+
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 25
+    auto_dipole:     true
+    user_incar_settings:
+      LVHAR:  true
+      IDIPOL: 3
+      # MAGMOM:
+      #   Fe: 5.0
+      #   Co: 3.0
+
+# ── 4. 板层 DOS（workflow.stages.slab_dos: true 时生效）───────
+#    继承 slab_relax 的 CHGCAR 进行非自洽计算
+slab_dos:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 60
+    number_of_dos:   2001
+    user_incar_settings:
+      LORBIT:  11
+      ISMEAR:  -5
+      ENCUT:   520
+
+# ── 5. 吸附结构构建 + 吸附弛豫 ───────────────────────────────
+adsorption:
+  build:
+    mode:             "site"    # "site"：按位点类型放置；"enumerate"：枚举所有位点
+    molecule_formula: "CO"      # 吸附分子化学式（ASE 识别的写法）
+    site_type:        "ontop"   # ontop / bridge / hollow
+    height:           1.8       # 初始吸附高度（Å）
+    reorient:         true      # 分子指向远离表面
+    selective_dynamics: false
+
+    # mode="site" 时：指定搜索哪些位点类型
+    find_args:
+      positions: ["ontop"]
+    # mode="enumerate" 时：取消注释以下内容
+    # enumerate:
+    #   distance: 2.0
+    #   no_obtuse_hollow: true
+
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 25
+    auto_dipole:     true
+    user_incar_settings:
+      LVHAR:  true
+      IDIPOL: 3
+
+# ── 6. 频率计算（振动分析）────────────────────────────────────
+freq:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 25
+    user_incar_settings:
+      IBRION: 5
+      POTIM:  0.015
+      NFREE:  2
+      NSW:    1
+  settings:
+    # mode 选项：
+    #   inherit   - 从 adsorption CONTCAR 的 selective_dynamics 推断振动原子
+    #   adsorbate - 按分子化学式自动识别振动原子（推荐）
+    #   indices   - 手动指定原子索引列表
+    mode:                    "adsorbate"
+    adsorbate_formula:       "CO"
+    adsorbate_formula_prefer: "tail"  # head / tail
+    # vibrate_indices: [30, 31]       # mode=indices 时使用
+
+# ── 7. Lobster 化学键分析（分阶段配置）───────────────────────
+#    启用方式：
+#      a) 将 workflow.stages 中对应阶段设为 true
+#         （bulk_lobster / slab_lobster / adsorption_lobster）
+#      b) 配置下方对应的阶段节（bulk_lobster / slab_lobster / adsorption_lobster）
+#      c) 在集群 ~/.bashrc 或模块中设置：export LOBSTER_BIN=/path/to/lobster
+#         （不要在此 yaml 中指定路径）
+#
+#    说明：各阶段可独立配置不同参数。若多阶段共享相同设置，
+#    可使用顶层 lobster: 节作为全局后备（未单独配置的阶段将回退到该全局配置）。
+#
+# ── 7a. 体相 Lobster（bulk_lobster: true 时生效）─────────────
+bulk_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+      # 多段写法：
+      # cohpGenerator:
+      #   - "from 1.5 to 1.9 type Fe type C orbitalwise"
+      #   - "from 1.5 to 2.1 type Fe type O orbitalwise"
+
+# ── 7b. 板层 Lobster（slab_lobster: true 时生效）─────────────
+slab_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+
+# ── 7c. 吸附 Lobster（adsorption_lobster: true 时生效）───────
+adsorption_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+
+# ── 8. NBO 自然键轨道分析（分阶段配置）──────────────────────
+#    启用方式：
+#      a) 将 workflow.stages 中对应阶段设为 true
+#         （bulk_nbo / slab_nbo / adsorption_nbo）
+#      b) 配置下方对应的阶段节
+#      c) 在集群 ~/.bashrc 或模块中设置：export NBO_BIN=/path/to/nbo7
+#         （不要在此 yaml 中指定路径）
+#
+#    各阶段可独立配置不同的基组、占据阈值等 NBO 参数。
+
+# ── 8a. 体相 NBO（bulk_nbo: true 时生效）────────────────────
+bulk_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"   # "ANO-RCC-MB" 或 "custom"
+    # custom_basis_path: "/path/to/basis"   # basis_source="custom" 时填写
+    occ_1c: 1.60
+    occ_2c: 1.85
+
+# ── 8b. 板层 NBO（slab_nbo: true 时生效）────────────────────
+slab_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85
+
+# ── 8c. 吸附 NBO（adsorption_nbo: true 时生效）──────────────
+adsorption_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85

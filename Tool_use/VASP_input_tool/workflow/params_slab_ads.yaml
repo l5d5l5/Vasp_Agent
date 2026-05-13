@@ -1,0 +1,201 @@
+# ============================================================
+# params_slab_ads.yaml
+# 板层 + 吸附模板：从已有板层 POSCAR 开始，弛豫后进行吸附计算
+#
+# 使用说明：
+#   将板层结构文件（命名 POSCAR_<id>）放入 slab_source 目录。
+#   工作流自动执行：slab_relax → adsorption → adsorption_freq
+#   可按需开启 slab_dos / slab_lobster / adsorption_lobster 等阶段。
+# ============================================================
+
+# ── 项目路径 ─────────────────────────────────────────────────
+project:
+  project_root: /home/user/projects/my_project
+  run_root:     /home/user/projects/my_project/runs
+
+# ── PBS 队列资源 ──────────────────────────────────────────────
+pbs:
+  queue:          normal
+  ppn:            72
+  walltime:       "124:00:00"
+  job_name_prefix: sa
+  template_file:  ./pbs_hook.sh.tpl
+
+# ── Python / Conda 环境 ───────────────────────────────────────
+python_runtime:
+  conda_sh:   "/opt/conda/etc/profile.d/conda.sh"
+  conda_env:  "workflow"
+  python_bin: "/opt/conda/envs/workflow/bin/python"
+
+# ── 已有板层文件目录 ──────────────────────────────────────────
+slab_source: /home/user/projects/my_project/slabs
+
+# ── 阶段开关 ─────────────────────────────────────────────────
+workflow:
+  stages:
+    bulk_relax:         false
+    bulk_dos:           false
+    bulk_lobster:       false
+    bulk_nbo:           false
+    slab_relax:         true    # 板层弛豫（从 slab_source 开始）
+    slab_dos:           false   # 开启后配置下方 slab_dos 节
+    slab_lobster:       false   # 开启后将 lobster.enabled 设为 true
+    slab_nbo:           false
+    adsorption:         true    # 吸附结构生成 + 弛豫
+    adsorption_freq:    true    # 振动频率计算
+    adsorption_lobster: false   # 开启后将 lobster.enabled 设为 true
+    adsorption_nbo:     false
+
+# ── 1. 板层弛豫 ───────────────────────────────────────────────
+slab:
+  miller_list: []
+  slabgen:
+    target_layers: 0
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 25
+    auto_dipole:     true
+    user_incar_settings:
+      LVHAR:  true
+      IDIPOL: 3
+      # MAGMOM:
+      #   Fe: 5.0
+
+# ── 2. 板层 DOS（slab_dos: true 时生效）──────────────────────
+slab_dos:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 60
+    number_of_dos:   2001
+    user_incar_settings:
+      LORBIT:  11
+      ISMEAR:  -5
+      ENCUT:   520
+
+# ── 3. 吸附结构构建 + 弛豫 ───────────────────────────────────
+adsorption:
+  build:
+    mode:             "site"    # "site" 或 "enumerate"
+    molecule_formula: "CO"      # 吸附分子化学式
+    site_type:        "ontop"   # ontop / bridge / hollow
+    height:           1.8
+    reorient:         true
+    selective_dynamics: false
+    find_args:
+      positions: ["ontop"]
+    # mode="enumerate" 时取消注释：
+    # enumerate:
+    #   distance: 2.0
+    #   no_obtuse_hollow: true
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 25
+    auto_dipole:     true
+    user_incar_settings:
+      LVHAR:  true
+      IDIPOL: 3
+
+# ── 4. 频率计算（振动分析）────────────────────────────────────
+freq:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 25
+    user_incar_settings:
+      IBRION: 5
+      POTIM:  0.015
+      NFREE:  2
+      NSW:    1
+  settings:
+    # mode 选项：inherit / adsorbate / indices
+    mode:                    "adsorbate"
+    adsorbate_formula:       "CO"
+    adsorbate_formula_prefer: "tail"
+    # vibrate_indices: [30, 31]   # mode=indices 时使用
+
+# ── 5. Lobster 化学键分析（分阶段配置）───────────────────────
+#    开启：
+#      a) 将对应阶段设为 true（slab_lobster / adsorption_lobster）
+#      b) 配置下方对应节
+#      c) 在集群 ~/.bashrc 中设置：export LOBSTER_BIN=/path/to/lobster
+#         （不在 yaml 中填写路径）
+
+# ── 5a. 板层 Lobster（slab_lobster: true 时生效）─────────────
+slab_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+      # 多段写法：
+      # cohpGenerator:
+      #   - "from 1.5 to 1.9 type Fe type C orbitalwise"
+      #   - "from 1.5 to 2.1 type Fe type O orbitalwise"
+
+# ── 5b. 吸附 Lobster（adsorption_lobster: true 时生效）───────
+adsorption_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+
+# ── 6. NBO 分析（分阶段配置）────────────────────────────────
+#    开启：
+#      a) 将对应阶段设为 true（slab_nbo / adsorption_nbo）
+#      b) 配置下方对应节
+#      c) 在集群 ~/.bashrc 中设置：export NBO_BIN=/path/to/nbo7
+#         （不在 yaml 中填写路径）
+
+# ── 6a. 板层 NBO（slab_nbo: true 时生效）────────────────────
+slab_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85
+
+# ── 6b. 吸附 NBO（adsorption_nbo: true 时生效）──────────────
+adsorption_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85

@@ -1,0 +1,117 @@
+# ============================================================
+# params_slab_only.yaml
+# 仅板层模板：从已有板层 POSCAR 开始，跳过体相阶段
+#
+# 使用说明：
+#   将板层结构文件（命名 POSCAR_<id> 或 CONTCAR_<id>）放入
+#   slab_source 所指向的目录，然后按需开启下方阶段开关。
+#   多个同 id 的文件（如 POSCAR_Fe110、POSCAR_Fe110_2）自动
+#   分配 term=0、term=1 … 索引。
+# ============================================================
+
+# ── 项目路径 ─────────────────────────────────────────────────
+project:
+  project_root: /home/user/projects/my_project
+  run_root:     /home/user/projects/my_project/runs
+
+# ── PBS 队列资源 ──────────────────────────────────────────────
+pbs:
+  queue:          normal
+  ppn:            72
+  walltime:       "124:00:00"
+  job_name_prefix: slab
+  template_file:  ./pbs_hook.sh.tpl
+
+# ── Python / Conda 环境 ───────────────────────────────────────
+python_runtime:
+  conda_sh:   "/opt/conda/etc/profile.d/conda.sh"
+  conda_env:  "workflow"
+  python_bin: "/opt/conda/envs/workflow/bin/python"
+
+# ── 已有板层文件目录（不设置 structure）──────────────────────
+slab_source: /home/user/projects/my_project/slabs
+
+# ── 阶段开关 ─────────────────────────────────────────────────
+workflow:
+  stages:
+    bulk_relax:         false
+    bulk_dos:           false
+    bulk_lobster:       false
+    bulk_nbo:           false
+    slab_relax:         true    # 从 slab_source 的 POSCAR 开始
+    slab_dos:           true    # 开启后配置下方 slab_dos 节
+    slab_lobster:       false   # 开启后将 lobster.enabled 设为 true
+    slab_nbo:           false
+    adsorption:         false
+    adsorption_freq:    false
+    adsorption_lobster: false
+    adsorption_nbo:     false
+
+# ── 1. 板层弛豫 ───────────────────────────────────────────────
+#    slab_source 模式下 miller_list / slabgen 无效，只读 vasp 节
+slab:
+  miller_list: []
+  slabgen:
+    target_layers: 0
+  vasp:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 25
+    auto_dipole:     true
+    user_incar_settings:
+      LVHAR:  true
+      IDIPOL: 3
+      # MAGMOM:
+      #   Fe: 5.0
+      #   Co: 3.0
+
+# ── 2. 板层 DOS（slab_dos: true 时生效）──────────────────────
+slab_dos:
+  vasp:
+    functional:      "BEEF"
+    kpoints_density: 60
+    number_of_dos:   2001
+    user_incar_settings:
+      LORBIT:  11
+      ISMEAR:  -5
+      ENCUT:   520
+
+# ── 3. 板层 Lobster 化学键分析（slab_lobster: true 时生效）──
+#    需要：在集群 ~/.bashrc 中设置 export LOBSTER_BIN=/path/to/lobster
+slab_lobster:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    is_metal:        true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LORBIT: 11
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy:    20.0
+      cohpGenerator: "from 1.5 to 2.2 orbitalwise"
+      # 多段写法：
+      # cohpGenerator:
+      #   - "from 1.5 to 1.9 type Fe type C orbitalwise"
+      #   - "from 1.5 to 2.1 type Fe type O orbitalwise"
+
+# ── 4. 板层 NBO 分析（slab_nbo: true 时生效）────────────────
+#    需要：在集群 ~/.bashrc 中设置 export NBO_BIN=/path/to/nbo7
+slab_nbo:
+  vasp_singlepoint:
+    functional:      "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW:    0
+      LWAVE:  true
+      LCHARG: false
+      ISYM:   0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85

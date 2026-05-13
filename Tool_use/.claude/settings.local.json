@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\workflow\\\\catalysis_tools_mod\\\\Tool_use\\\\Search_tool\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\workflow\\\\catalysis_tools_mod\" -Recurse | Where-Object {$_.Name -match \"^\\(pyproject|requirements|setup\\)\" -and $_.Extension -match \"toml|txt|py|cfg\"} | Select-Object FullName)",
+      "Bash(python -c \"import pydantic; print\\(pydantic.VERSION\\)\")",
+      "Bash(cd /d D:/workflow/catalysis_tools_mod/Tool_use/Search_tool)",
+      "Bash(python *)",
+      "WebSearch",
+      "WebFetch(domain:oqmd.org)",
+      "WebFetch(domain:static.oqmd.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:mohanliu.github.io)",
+      "WebFetch(domain:pythonhosted.org)",
+      "Bash(git checkout *)",
+      "Bash(git -C D:\\\\workflow\\\\catalysis_tools_mod\\\\Tool_use add Structure_tool/structure_tool_schemas.py Structure_tool/tests/__init__.py Structure_tool/tests/test_structure_schemas.py)",
+      "Bash(git -C D:workflowcatalysis_tools_modTool_use commit -m ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: add Structure_tool Pydantic schemas for 6 LLM tool calls *)",
+      "Bash(git *)",
+      "Read(//d/D/workflow/catalysis_tools_mod/Tool_use/Structure_tool/**)",
+      "Read(//d/workflow/catalysis_tools_mod/**)",
+      "Bash(D:/anaconda/envs/workflow/python.exe Tool_use/Structure_tool/structure_tool_use.py)",
+      "Bash(Get-ChildItem -Path \"D:\\\\workflow\\\\catalysis_tools_mod\\\\Tool_use\\\\Analysis_tool\" -Recurse -File)",
+      "Bash(Select-Object -Property FullName, Length)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(not exist *)",
+      "Bash(New-Item *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\workflow\\\\catalysis_tools_mod\\\\Tool_use\\\\Analysis_tool\" -Recurse -Force)",
+      "Bash(pip install *)"
+    ]
+  }
+}

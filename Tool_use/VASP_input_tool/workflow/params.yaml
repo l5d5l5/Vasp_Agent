@@ -1,0 +1,151 @@
+project:
+  project_root: ..
+  run_root: ../runs
+  templates_dir: .
+
+pbs:
+  queue: low
+  ppn: 72
+  walltime: "124:00:00"
+  job_name_prefix: "high_calc"
+  template_file: ./pbs_hook.sh.tpl
+
+python_runtime:
+  conda_sh: ""
+  conda_env: "workflow"
+  python_bin: ""
+
+structure: ../structure
+
+workflow:
+  stages:
+    bulk_relax: true
+    bulk_dos: true
+    slab_relax: true
+    slab_dos: true
+    adsorption: true
+    bulk_lobster: false
+    slab_lobster: true
+    adsorption_freq: true
+    adsorption_lobster: false
+    bulk_nbo: false
+    slab_nbo: false
+    adsorption_nbo: false
+
+slab_lobster:
+  vasp_singlepoint:
+    functional: "BEEF"
+    is_metal: true
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW: 0
+      LORBIT: 11
+      LWAVE: true
+      LCHARG: false
+      ISYM: 0
+    lobsterin_settings:
+      COHPstartEnergy: -20.0
+      COHPendEnergy: 20.0
+      cohpGenerator: "from 1.5 to 1.9 orbitalwise"
+
+bulk:
+  vasp:
+    functional: "BEEF"
+    is_metal: true
+    kpoints_density: 50
+    user_incar_settings:
+      NPAR: 4
+      ISIF: 3
+      MAGMOM:
+        Co: 3.0
+        Fe: 5.0
+        Ni: 5.0
+        Mn: 5.0
+        V: 1.0
+        Ti: 1.0
+        Cr: 3.0
+
+bulk_dos:
+  vasp:
+    functional: "BEEF"
+    kpoints_density: 50
+    number_of_dos: 2001
+    user_incar_settings:
+      LORBIT: 11
+      ISMEAR: -5
+
+slab:
+  miller_list: [[1, 1, 0]]
+  slabgen:
+    vacuum_thickness: 15
+    target_layers: 5
+    fix_bottom_layers: 2
+    hcluster_cutoff: 0.25
+  vasp:
+    functional: "BEEF"
+    kpoints_density: 25
+    auto_dipole: true
+    user_incar_settings:
+      LVHAR: true
+      IDIPOL: 3
+      MAGMOM:
+        Co: 3.0
+        Fe: 5.0
+        Ni: 5.0
+        Mn: 5.0
+        V: 1.0
+        Ti: 1.0
+        Cr: 3.0
+
+slab_dos:
+  vasp:
+    functional: "BEEF"
+    kpoints_density: 60
+    number_of_dos: 2001
+    user_incar_settings:
+      LORBIT: 11
+      ISMEAR: -5
+      ENCUT: 520
+
+adsorption:
+  build:
+    mode: "site"
+    molecule_formula: "CH3"
+    site_type: "ontop"
+    site_index: 0
+    height: 1.8
+    reorient: true
+    find_args:
+      positions: ["ontop"]
+  vasp:
+    functional: "BEEF"
+    kpoints_density: 25
+
+freq:
+  vasp:
+    functional: "BEEF"
+    user_incar_settings:
+      IBRION: 5
+      POTIM: 0.015
+      NFREE: 2
+      NSW: 1
+  settings:
+    mode: "inherit"
+    adsorbate_formula: "CH3"
+    adsorbate_formula_prefer: "tail"
+
+adsorption_nbo:
+  vasp_singlepoint:
+    functional: "BEEF"
+    kpoints_density: 50
+    user_incar_settings:
+      IBRION: -1
+      NSW: 0
+      LWAVE: true
+      LCHARG: false
+      ISYM: 0
+  settings:
+    basis_source: "ANO-RCC-MB"
+    occ_1c: 1.60
+    occ_2c: 1.85
