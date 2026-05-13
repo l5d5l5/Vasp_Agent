@@ -22,12 +22,13 @@ def executor():
 
 @pytest.mark.asyncio
 async def test_tools_list(executor):
-    """Executor exposes a list of 6 OpenAI-format tool dicts."""
+    """Executor exposes a list of 7 OpenAI-format tool dicts."""
     tools = executor.tools
     assert isinstance(tools, list)
-    assert len(tools) == 6
+    assert len(tools) == 7
     names = {t["function"]["name"] for t in tools}
     assert names == {
+        "vasp_detect",
         "vasp_dos",
         "vasp_relax",
         "vasp_structure_info",
@@ -35,6 +36,23 @@ async def test_tools_list(executor):
         "vasp_cohp_curves",
         "vasp_cohp_export",
     }
+
+
+@pytest.mark.asyncio
+async def test_vasp_detect_dos_dir(executor):
+    """Detect correctly identifies DOS + RELAX in the dos test directory."""
+    result = await executor.execute("vasp_detect", {"work_dir": DOS_DIR})
+    data = json.loads(result)
+    assert data.get("success") is True
+    detected = data["data"]["detected"]
+    # dos/ has DOSCAR and OUTCAR — expect both dos and relax
+    assert "dos" in detected
+    assert "relax" in detected
+    # NEB and DIMER should NOT appear
+    assert "neb" not in detected
+    assert "dimer" not in detected
+    # recommended tools should include vasp_dos
+    assert "vasp_dos" in data["data"]["recommended_tools"]
 
 
 @pytest.mark.asyncio

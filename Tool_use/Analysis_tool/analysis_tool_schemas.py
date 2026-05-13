@@ -1,10 +1,10 @@
 # ══════════════════════════════════════════════════════════════
 # analysis_tool_schemas.py
-# Pydantic models → OpenAI function-calling schema for 6 VASP analysis tools
+# Pydantic models → OpenAI function-calling schema for 7 VASP analysis tools
 #
 # Public API:
 #   get_analysis_tool_schema(lang="en") -> list[dict]
-#   DosArgs / RelaxArgs / StructureInfoArgs /
+#   DetectArgs / DosArgs / RelaxArgs / StructureInfoArgs /
 #   CohpSummaryArgs / CohpCurvesArgs / CohpExportArgs
 # ══════════════════════════════════════════════════════════════
 from __future__ import annotations
@@ -16,8 +16,20 @@ from pydantic import BaseModel, Field
 
 
 # ══════════════════════════════════════════════
-# §1  Pydantic argument models (6 tools)
+# §1  Pydantic argument models (7 tools)
 # ══════════════════════════════════════════════
+
+class DetectArgs(BaseModel):
+    model_config = {"extra": "ignore"}
+
+    work_dir: str = Field(
+        description=(
+            "Path to the VASP calculation directory to inspect. "
+            "The tool scans for characteristic files and returns the detected "
+            "calculation type(s) and recommended follow-up tools."
+        )
+    )
+
 
 class DosArgs(BaseModel):
     model_config = {"extra": "ignore"}
@@ -196,6 +208,28 @@ class ToolSpec:
 
 _TOOL_SPECS: list[ToolSpec] = [
     ToolSpec(
+        name="vasp_detect",
+        description_en=(
+            "Scan a VASP calculation directory and automatically detect which type(s) "
+            "of calculation are present. "
+            "Recognised types: relax (geometry optimisation), dos (density of states), "
+            "cohp (LOBSTER bonding analysis), neb (nudged elastic band transition state), "
+            "dimer (dimer method transition state). "
+            "Returns the detected types, key evidence files, and a list of recommended "
+            "follow-up tools to use. "
+            "Always call this first when the user does not specify the calculation type."
+        ),
+        description_cn=(
+            "扫描 VASP 计算目录并自动识别其中包含哪种类型的计算。"
+            "可识别类型：relax（几何优化）、dos（态密度）、"
+            "cohp（LOBSTER 成键分析）、neb（微动弹性带过渡态）、"
+            "dimer（二聚体方法过渡态）。"
+            "返回识别到的计算类型、关键证据文件和推荐的后续工具列表。"
+            "当用户未指定计算类型时，始终优先调用此工具。"
+        ),
+        args_class=DetectArgs,
+    ),
+    ToolSpec(
         name="vasp_dos",
         description_en=(
             "Extract projected density of states (PDOS) from a VASP DOSCAR file "
@@ -340,7 +374,7 @@ def _model_to_openai_schema(model_cls: type[BaseModel]) -> Dict[str, Any]:
 
 def get_analysis_tool_schema(lang: str = "en") -> list[Dict[str, Any]]:
     """
-    Generate the OpenAI function-calling tool schema list for the 6 VASP analysis tools.
+    Generate the OpenAI function-calling tool schema list for the 7 VASP analysis tools.
 
     Parameters
     ----------
