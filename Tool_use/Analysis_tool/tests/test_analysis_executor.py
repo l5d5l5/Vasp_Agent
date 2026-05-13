@@ -78,7 +78,7 @@ async def test_vasp_dos(executor):
         "vasp_dos",
         {
             "work_dir": DOS_DIR,
-            "elements": ["Fe"],
+            "elements": ["Pd"],
             "orbitals": ["d"],
             "erange": [-10.0, 5.0],
             "show_tdos": False,
